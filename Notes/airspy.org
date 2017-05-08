@@ -1,0 +1,35 @@
+* 概述
+
+The Airspy series offer continuous spectrum coverage and blazingly fast and accurate scanning anywhere between 24MHz and 1.8GHz with 10 or 6MHz instantaneous view[fn:2].
+
+* 在GNU Radio 中使用 Airspy
+OsmoSDR (i.e., GrOsmoSDR-osmocom Gnu Radio Blocks) provides the airspy support[fn:1]:
+[[file:airspy.org_imgs/20170505_151719_1933LUy.png]]
+
+* FAQ
+1. Failed to open
+  在grc中设置好graph，运行报错：
+  #+BEGIN_QUOTE
+  FATAL: Failed to open AirSpy device (-5) AIRSPY_ERROR_NOT_FOUND
+  #+END_QUOTE
+  在 shell 中运行：
+  #+BEGIN_SRC sh
+  airspy_rx -r /dev/null -t 0
+  #+END_SRC
+  同样报错：
+  #+BEGIN_QUOTE
+  airspy_open() failed: AIRSPY_ERROR_NOT_FOUND (-5)
+  #+END_QUOTE
+  参考[fn:3]，似乎需要 blacklist airspy driver: 
+  #+BEGIN_SRC sh
+  echo blacklist airspy |sudo tee /etc/modprobe.d/airspy-blacklist.conf
+  sudo rmmod airspy
+  #+END_SRC
+
+* Footnotes
+
+[fn:3] https://github.com/airspy/airspyone_host/wiki/Troubleshooting
+
+[fn:2] http://airspy.com/
+
+[fn:1] http://osmocom.org/projects/sdr/wiki/GrOsmoSDR

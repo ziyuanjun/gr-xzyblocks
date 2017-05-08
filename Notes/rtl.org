@@ -1,0 +1,21 @@
+rtl_*** 的命令报错了：
+
+[[file:rtl.org_imgs/20170506_122742_2609s8L.png]]
+
+解决方法[fn:1]
+1. 检查 dvb_usb_rtl28xxu 是否在使用：
+   #+BEGIN_SRC sh
+   sudo modprobe -r dvb_usb_rtl28xxu
+   #+END_SRC
+2. create a file in /etc/modprobe.d with a .conf extension (I called it "no-rtl.conf") with these contents:
+
+   #+BEGIN_SRC sh
+   blacklist dvb_usb_rtl28xxu 
+   blacklist rtl2832 
+   blacklist rtl2830 
+   #+END_SRC
+3. 
+
+* Footnotes
+
+[fn:1] https://groups.google.com/forum/#!msg/ultra-cheap-sdr/6_sSON94Azo/t92M4DdOhKQJ
