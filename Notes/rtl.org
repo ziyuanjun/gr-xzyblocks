@@ -1,3 +1,9 @@
+* 使用 RTL_SDR 作为 FM 接收机
+参考[fn:2]
+* dual-channel coherent digital receiver
+  参考[fn:3],[fn:4]
+* FAQ
+** Fail to open rtlsdr device
 rtl_*** 的命令报错了：
 
 [[file:rtl.org_imgs/20170506_122742_2609s8L.png]]
@@ -17,5 +23,11 @@ rtl_*** 的命令报错了：
 3. 
 
 * Footnotes
+
+[fn:4] https://github.com/ptrkrysik/multi-rtl
+
+[fn:3] http://kaira.sgo.fi/2013/09/16-dual-channel-coherent-digital.html
+
+[fn:2] http://www.instructables.com/id/RTL-SDR-FM-radio-receiver-with-GNU-Radio-Companion/
 
 [fn:1] https://groups.google.com/forum/#!msg/ultra-cheap-sdr/6_sSON94Azo/t92M4DdOhKQJ
