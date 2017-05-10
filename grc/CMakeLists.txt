@@ -18,5 +18,7 @@
 # Boston, MA 02110-1301, USA.
 
 install(FILES
-    xzyblocks_square_ff.xml DESTINATION share/gnuradio/grc/blocks
+    xzyblocks_square_ff.xml
+    xzyblocks_fft_scan_py_cc.xml
+    xzyblocks_fft_scan_py_vcc.xml DESTINATION share/gnuradio/grc/blocks
 )

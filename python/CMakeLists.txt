@@ -31,7 +31,9 @@ endif()
 GR_PYTHON_INSTALL(
     FILES
     __init__.py
-    square_ff.py DESTINATION ${GR_PYTHON_DIR}/xzyblocks
+    square_ff.py
+    fft_scan_py_cc.py
+    fft_scan_py_vcc.py DESTINATION ${GR_PYTHON_DIR}/xzyblocks
 )
 
 ########################################################################
