@@ -16,9 +16,8 @@
 # along with GNU Radio; see the file COPYING.  If not, write to
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
-
 install(FILES
     xzyblocks_square_ff.xml
-    xzyblocks_fft_scan_py_cc.xml
-    xzyblocks_fft_scan_py_vcc.xml DESTINATION share/gnuradio/grc/blocks
+    xzyblocks_fft_scan_py_vcc.xml
+    xzyblocks_fft_scan_sink_py_vcc.xml DESTINATION share/gnuradio/grc/blocks
 )
