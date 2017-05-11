@@ -59,7 +59,7 @@ class airspy_scan1(grc_wxgui.top_block_gui):
         self.osmosdr_source_1.set_antenna('', 0)
         self.osmosdr_source_1.set_bandwidth(0, 0)
 
-        self.xzyblocks_fft_scan_sink_py_vcc_0 = xzyblocks.fft_scan_sink_py_vcc(self.osmosdr_source_1, samp_rate, 1024, freq, 80e6, 100e6)
+        self.xzyblocks_fft_scan_sink_py_vcc_0 = xzyblocks.fft_scan_sink_py_vcc(self.osmosdr_source_1, samp_rate, 1024, freq, 80e6, 100e6,15,512)
         self.blocks_stream_to_vector_0 = blocks.stream_to_vector(gr.sizeof_gr_complex*1, 1024)
 
         ##################################################

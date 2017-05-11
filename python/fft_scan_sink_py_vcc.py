@@ -19,6 +19,7 @@
 # Boston, MA 02110-1301, USA.
 # 
 
+from __future__ import division
 import numpy
 import numpy as np
 from numpy.fft import fft, fftshift
@@ -27,9 +28,25 @@ from gnuradio import gr
 
 class fft_scan_sink_py_vcc(gr.sync_block):
     """
-    docstring for block fft_scan_sink_py_vcc
+    This block can be used to get frequency specturm scanning results of given device.
+    The list of devices which have been tested is: airspy.
     """
-    def __init__(self, device,sampRate=2.5e6, Nfft=1024, freqCenter=30e6, freqMin=30e6, freqMax=2e9):
+    def __init__(self, device,sampRate=2.5e6, Nfft=1024, freqCenter=30e6,
+                 freqMin=30e6, freqMax=2e9, protectNum=15, spectOverlapPNum=0):
+        """
+        device: freq scanning device
+        sampRate: device real samplerate
+        Nfft: number of fft points
+        freqCenter: the init-center-frequency
+        freqMin: the minimum frequency of scanning
+        freqMax: the maximum frequency of scanning
+        protectNum: now that we must wait a little after the device's freq been set,
+                    we just skip several input samples(this parameter is the number)
+                    in this block.
+        spectOverlapPNum: specturm is not pure since the filter's edge is not sharp.
+                    we must drop some FFT points. To get a continous specturm, we let
+                    two adjacent FFT overlapped.
+        """
         gr.sync_block.__init__(self,
             name="fft_scan_sink_py_vcc",
             in_sig=[(numpy.complex64,Nfft)],
@@ -41,8 +58,14 @@ class fft_scan_sink_py_vcc(gr.sync_block):
         self.freqMax=freqMax
         self.sampRate=sampRate
         self.figCount=0
-        self.protectNum=15
+        self.protectNum=protectNum
         self.numAfterSet=0
+        self.spectOverlapPNum=spectOverlapPNum
+        ratio=(Nfft-spectOverlapPNum)/Nfft
+        if(ratio<=0):
+            raise ArithmeticError("Wrong Overlap")
+        self.deltaFreq=sampRate*ratio
+        self.spectDropPNum=int(spectOverlapPNum/2)
 
 
     def work(self, input_items, output_items):
@@ -59,14 +82,19 @@ class fft_scan_sink_py_vcc(gr.sync_block):
             # plt.savefig("specFig"+str(self.figCount)+".png")
             # plt.clf()
             # self.figCount+=1
-            data=np.zeros((self.Nfft,2),dtype=np.float)
-            data[:,0]=np.abs(X)
-            data[:,1]=freqAxis
+            data=np.zeros((self.Nfft-self.spectDropPNum*2, 2),dtype=np.float)
+            if self.spectOverlapPNum>0:
+                data[:,0]=np.abs(X[self.spectDropPNum:-self.spectDropPNum])
+                data[:,1]=freqAxis[self.spectDropPNum:-self.spectDropPNum]
+            else:
+                data[:,0]=np.abs(X)
+                data[:,1]=freqAxis
+
             np.savetxt("specData"+str(self.figCount)+".txt",data)
             self.figCount+=1
 
             # change the freqCenter of device
-            self.freqCenter=self.freqCenter+self.sampRate
+            self.freqCenter=self.freqCenter+self.deltaFreq
             if(self.freqCenter>self.freqMax):
                 self.freqCenter=self.freqMin
             elif(self.freqCenter<self.freqMin):

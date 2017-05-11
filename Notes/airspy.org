@@ -25,8 +25,13 @@ OsmoSDR (i.e., GrOsmoSDR-osmocom Gnu Radio Blocks) provides the airspy support[f
   echo blacklist airspy |sudo tee /etc/modprobe.d/airspy-blacklist.conf
   sudo rmmod airspy
   #+END_SRC
-
+2. matplotlib is not installed[fn:4].
+   #+BEGIN_SRC sh
+   sudo apt-get install python-matplotlib
+   #+END_SRC
 * Footnotes
+
+[fn:4] https://matplotlib.org/users/installing.html
 
 [fn:3] https://github.com/airspy/airspyone_host/wiki/Troubleshooting
 
