@@ -64,7 +64,8 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         # Variables
         ##################################################
         self.samp_rate = samp_rate = 2500000
-        self.freq = freq = 97.4
+        self.samp_rate = samp_rate = 2500000 * 4
+        self.freq = freq = 88e6
 
         ##################################################
         # Blocks
@@ -113,9 +114,12 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         self.osmosdr_source_1.set_bandwidth(0, 0)
 
         freqMin,freqMax=88e6,108e6
+        freqMin,freqMax=400e6,420e6
+        freqMin,freqMax=118e6,136e6
+        freqMin,freqMax=40e6,800e6
         freqCenter=freqMin
         self.osmosdr_source_1.set_center_freq(freqCenter, 0)
-        self.xzyblocks_fft_scan_plot_py_vc_0 = xzyblocks.fft_scan_plot_py_vc(self.osmosdr_source_1, samp_rate, 1024, freqCenter, freqMin, freqMax,25,512)
+        self.xzyblocks_fft_scan_plot_py_vc_0 = xzyblocks.fft_scan_plot_py_vc(self.osmosdr_source_1, samp_rate, 1024, freqCenter, freqMin, freqMax,25,512,alpha=0.1)
         #self.xzyblocks_fft_scan_plot_py_vc_0 = xzyblocks.fft_scan_plot_py_vc()
         self.blocks_stream_to_vector_0 = blocks.stream_to_vector(gr.sizeof_gr_complex*1, 1024)
 
@@ -156,9 +160,11 @@ p6 = win.addPlot(title="Updating plot")
 curve = p6.plot(pen='y')
 data = np.random.normal(size=(10,1000))
 ptr=0
+#ydata=0
 def main(top_block_cls=airspy_scan2, options=None):
     global curve, data, ptr, p6
 
+    alpha=0.1
     # from distutils.version import StrictVersion
     # if StrictVersion(Qt.qVersion()) >= StrictVersion("4.5.0"):
     #     style = gr.prefs().get_string('qtgui', 'style', 'raster')
@@ -174,13 +180,17 @@ def main(top_block_cls=airspy_scan2, options=None):
         tb.stop()
         tb.wait()
     def update():
-        global curve, data, ptr, p6
+        global curve, data, ptr, p6 #, ydata
         # if ptr == 1:
-        #     curve.setData(data[ptr%10])
-        #     p6.enableAutoRange('xy', False)
+            # ydata=tb.xzyblocks_fft_scan_plot_py_vc_0.plotData
+            #p6.enableAutoRange('xy', False)
         if ptr>=1:
+            # ydata=(1-alpha)*tb.xzyblocks_fft_scan_plot_py_vc_0.plotData+alpha*ydata
+            data=np.abs(tb.xzyblocks_fft_scan_plot_py_vc_0.plotData)
+            data[data<1e-6]=1e-6
+            ydata=20*np.log10(data)
             #curve.setData(tb.xzyblocks_fft_scan_plot_py_vc_0.plotData)
-            curve.setData(x=tb.xzyblocks_fft_scan_plot_py_vc_0.xaxisData/1000000.0,y=tb.xzyblocks_fft_scan_plot_py_vc_0.plotData)
+            curve.setData(x=tb.xzyblocks_fft_scan_plot_py_vc_0.xaxisData/1000000.0,y=ydata)
 
             p6.enableAutoRange('xy', False)
         ptr += 1

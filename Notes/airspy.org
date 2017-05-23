@@ -6,6 +6,18 @@ The Airspy series offer continuous spectrum coverage and blazingly fast and accu
 OsmoSDR (i.e., GrOsmoSDR-osmocom Gnu Radio Blocks) provides the airspy support[fn:1]:
 [[file:airspy.org_imgs/20170505_151719_1933LUy.png]]
 
+* FFT scan
+  使用 FFT 来获得频谱数据，一个 FFT 窗口的频谱跨度是 Fs, Nfft 个点
+  [[file:airspy.org_imgs/20170523_145628_2160cSN.png]]
+
+  为了避免滤波器引起的频谱噪底不一致（远离中心频率处的功率低），令频谱扫描时窗口间存在一定的重叠，设重叠点数为 No, 如图所示，相邻两个FFT 窗口在它们的重叠区各取 No/2 个点，使频谱首尾相接，形成连续的频谱。输出的频谱是中心频率附近的 Ne 个点。
+  [[file:airspy.org_imgs/20170523_145953_2160pcT.png]]
+
+  Ne=Nfft-No
+  Fmin 为中心频点序列中的最小值，相应的可以算出输出频谱的最小值 fmin:
+  fmin=Fmin-Fs/Nfft*Ne/2
+  Fmax 为中心频点序列中的最大值，相应的可以算出输出频谱的最小值 fmax:
+  fmax=Fmax+Fs/Nfft*Ne/2
 * FAQ
 1. Failed to open
   在grc中设置好graph，运行报错：
