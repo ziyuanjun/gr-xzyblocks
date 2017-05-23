@@ -35,4 +35,5 @@ from square_ff import square_ff
 
 from fft_scan_py_vcc import fft_scan_py_vcc
 from fft_scan_sink_py_vcc import fft_scan_sink_py_vcc
+from fft_scan_plot_py_vc import fft_scan_plot_py_vc
 #

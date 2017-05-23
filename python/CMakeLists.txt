@@ -33,7 +33,8 @@ GR_PYTHON_INSTALL(
     __init__.py
     square_ff.py
     fft_scan_py_vcc.py
-    fft_scan_sink_py_vcc.py DESTINATION ${GR_PYTHON_DIR}/xzyblocks
+    fft_scan_sink_py_vcc.py
+    fft_scan_plot_py_vc.py DESTINATION ${GR_PYTHON_DIR}/xzyblocks
 )
 
 ########################################################################
