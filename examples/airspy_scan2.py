@@ -64,7 +64,7 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         # Variables
         ##################################################
         self.samp_rate = samp_rate = 2500000
-        self.samp_rate = samp_rate = 2500000 * 4
+        #self.samp_rate = samp_rate = 2500000 * 4
         self.freq = freq = 88e6
 
         ##################################################
@@ -116,7 +116,7 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         freqMin,freqMax=88e6,108e6
         freqMin,freqMax=400e6,420e6
         freqMin,freqMax=118e6,136e6
-        freqMin,freqMax=40e6,800e6
+        #freqMin,freqMax=40e6,800e6
         freqCenter=freqMin
         self.osmosdr_source_1.set_center_freq(freqCenter, 0)
         self.xzyblocks_fft_scan_plot_py_vc_0 = xzyblocks.fft_scan_plot_py_vc(self.osmosdr_source_1, samp_rate, 1024, freqCenter, freqMin, freqMax,25,512,alpha=0.1)

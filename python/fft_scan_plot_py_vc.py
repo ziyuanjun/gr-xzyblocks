@@ -25,6 +25,7 @@ import numpy as np
 from numpy.fft import fft, fftshift
 from gnuradio import gr
 from scipy import signal
+import sys,time
 
 class fft_scan_plot_py_vc(gr.sync_block):
     """
@@ -127,12 +128,18 @@ class fft_scan_plot_py_vc(gr.sync_block):
 
     def set_freq_via_list(self):
         # change the freqCenter of device
+        Nfreq=len(self.freqSetList)
         self.freqSetInd=self.freqSetInd+1
-        if(self.freqSetInd>=len(self.freqSetList)):
+        if(self.freqSetInd>=Nfreq):
             self.freqSetInd=0
             self.numFrameGet+=1
-            print "\n"+str(self.numFrameGet),
+            header=str(self.numFrameGet)
+            sys.stdout.write('\r')
+            sys.stdout.write(' ' * (Nfreq+len(header)+1) +'|\r')
+            sys.stdout.write(header+'|')
+            sys.stdout.flush()
         self.freqCenter=self.freqSetList[self.freqSetInd]
         self.device.set_center_freq(self.freqCenter, 0)
+        sys.stdout.write('#')
+        sys.stdout.flush()
 
-        print "=",
