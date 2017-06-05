@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Airspy Scan2
-# Generated: Wed May 24 08:27:10 2017
+# Generated: Mon May 22 15:10:19 2017
 ##################################################
 
 if __name__ == '__main__':
@@ -17,6 +17,7 @@ if __name__ == '__main__':
             print "Warning: failed to XInitThreads()"
 
 from PyQt4 import Qt
+from PyQt4.QtGui import QComboBox
 from gnuradio import blocks
 from gnuradio import eng_notation
 from gnuradio import gr
@@ -29,8 +30,9 @@ import sip
 import sys
 import time
 import xzyblocks
-from gnuradio import qtgui
-
+import numpy as np
+from pyqtgraph.Qt import QtGui, QtCore
+import pyqtgraph as pg
 
 class airspy_scan2(gr.top_block, Qt.QWidget):
 
@@ -62,62 +64,36 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         # Variables
         ##################################################
         self.samp_rate = samp_rate = 2500000
-        self.freq = freq = 97.4
+        #self.samp_rate = samp_rate = 2500000 * 4
+        self.freq = freq = 88e6
 
         ##################################################
         # Blocks
         ##################################################
-        # self.xzyblocks_fft_scan_plot_py_vc_0 = xzyblocks.fft_scan_plot_py_vc()
-        self.qtgui_time_sink_x_0 = qtgui.time_sink_c(
-        	1024, #size
-        	samp_rate, #samp_rate
-        	"", #name
-        	1 #number of inputs
-        )
-        self.qtgui_time_sink_x_0.set_update_time(0.10)
-        self.qtgui_time_sink_x_0.set_y_axis(-1, 1)
 
-        self.qtgui_time_sink_x_0.set_y_label('Amplitude', "")
+        paraLayout = Qt.QHBoxLayout()
+        samprateLabel = Qt.QLabel("f<sub>s</sub>:")
+        self.samprateComboBox = QComboBox()
+        self.samprateComboBox.addItems(["2.5M", "10M"])
+        freqMinLabel = Qt.QLabel("f<sub>min</sub>(MHz):")
+        self.freqMinSpinBox=Qt.QSpinBox()
+        #self.freqMinSpinBox.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+        self.freqMinSpinBox.setRange(30,1000)
+        freqMaxLabel = Qt.QLabel("f<sub>max</sub>(MHz):")
+        self.freqMaxSpinBox=Qt.QSpinBox()
+        #self.freqMaxSpinBox.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+        self.freqMaxSpinBox.setRange(40,1010)
+        self.saveCheckBox = Qt.QCheckBox("save raw IQ")
+        paraLayout.addStretch()
+        paraLayout.addWidget(samprateLabel)
+        paraLayout.addWidget(self.samprateComboBox)
+        paraLayout.addWidget(freqMinLabel)
+        paraLayout.addWidget(self.freqMinSpinBox)
+        paraLayout.addWidget(freqMaxLabel)
+        paraLayout.addWidget(self.freqMaxSpinBox)
+        paraLayout.addWidget(self.saveCheckBox)
 
-        self.qtgui_time_sink_x_0.enable_tags(-1, True)
-        self.qtgui_time_sink_x_0.set_trigger_mode(qtgui.TRIG_MODE_FREE, qtgui.TRIG_SLOPE_POS, 0.0, 0, 0, "")
-        self.qtgui_time_sink_x_0.enable_autoscale(False)
-        self.qtgui_time_sink_x_0.enable_grid(False)
-        self.qtgui_time_sink_x_0.enable_axis_labels(True)
-        self.qtgui_time_sink_x_0.enable_control_panel(False)
-
-        if not True:
-          self.qtgui_time_sink_x_0.disable_legend()
-
-        labels = ['', '', '', '', '',
-                  '', '', '', '', '']
-        widths = [1, 1, 1, 1, 1,
-                  1, 1, 1, 1, 1]
-        colors = ["blue", "red", "green", "black", "cyan",
-                  "magenta", "yellow", "dark red", "dark green", "blue"]
-        styles = [1, 1, 1, 1, 1,
-                  1, 1, 1, 1, 1]
-        markers = [-1, -1, -1, -1, -1,
-                   -1, -1, -1, -1, -1]
-        alphas = [1.0, 1.0, 1.0, 1.0, 1.0,
-                  1.0, 1.0, 1.0, 1.0, 1.0]
-
-        for i in xrange(2):
-            if len(labels[i]) == 0:
-                if(i % 2 == 0):
-                    self.qtgui_time_sink_x_0.set_line_label(i, "Re{{Data {0}}}".format(i/2))
-                else:
-                    self.qtgui_time_sink_x_0.set_line_label(i, "Im{{Data {0}}}".format(i/2))
-            else:
-                self.qtgui_time_sink_x_0.set_line_label(i, labels[i])
-            self.qtgui_time_sink_x_0.set_line_width(i, widths[i])
-            self.qtgui_time_sink_x_0.set_line_color(i, colors[i])
-            self.qtgui_time_sink_x_0.set_line_style(i, styles[i])
-            self.qtgui_time_sink_x_0.set_line_marker(i, markers[i])
-            self.qtgui_time_sink_x_0.set_line_alpha(i, alphas[i])
-
-        self._qtgui_time_sink_x_0_win = sip.wrapinstance(self.qtgui_time_sink_x_0.pyqwidget(), Qt.QWidget)
-        self.top_layout.addWidget(self._qtgui_time_sink_x_0_win)
+        self.top_layout.addLayout(paraLayout)
         self.osmosdr_source_1 = osmosdr.source( args="numchan=" + str(1) + " " + 'airspy' )
         self.osmosdr_source_1.set_sample_rate(samp_rate)
         self.osmosdr_source_1.set_center_freq(freq, 0)
@@ -132,12 +108,13 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         self.osmosdr_source_1.set_bandwidth(0, 0)
 
         freqMin,freqMax=88e6,108e6
-        freqMin,freqMax=400e6,420e6
-        freqMin,freqMax=118e6,136e6
+        # freqMin,freqMax=400e6,420e6
+        # freqMin,freqMax=118e6,136e6
         #freqMin,freqMax=40e6,800e6
         freqCenter=freqMin
         self.osmosdr_source_1.set_center_freq(freqCenter, 0)
         self.xzyblocks_fft_scan_plot_py_vc_0 = xzyblocks.fft_scan_plot_py_vc(self.osmosdr_source_1, samp_rate, 1024, freqCenter, freqMin, freqMax,25,512,alpha=0.1)
+        #self.xzyblocks_fft_scan_plot_py_vc_0 = xzyblocks.fft_scan_plot_py_vc()
         self.blocks_stream_to_vector_0 = blocks.stream_to_vector(gr.sizeof_gr_complex*1, 1024)
 
         ##################################################
@@ -145,7 +122,7 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         ##################################################
         self.connect((self.blocks_stream_to_vector_0, 0), (self.xzyblocks_fft_scan_plot_py_vc_0, 0))
         self.connect((self.osmosdr_source_1, 0), (self.blocks_stream_to_vector_0, 0))
-        self.connect((self.osmosdr_source_1, 0), (self.qtgui_time_sink_x_0, 0))
+        #self.connect((self.osmosdr_source_1, 0), (self.qtgui_time_sink_x_0, 0))
 
     def closeEvent(self, event):
         self.settings = Qt.QSettings("GNU Radio", "airspy_scan2")
@@ -157,7 +134,7 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
 
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
-        self.qtgui_time_sink_x_0.set_samp_rate(self.samp_rate)
+        #self.qtgui_time_sink_x_0.set_samp_rate(self.samp_rate)
         self.osmosdr_source_1.set_sample_rate(self.samp_rate)
 
     def get_freq(self):
@@ -167,25 +144,43 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         self.freq = freq
         self.osmosdr_source_1.set_center_freq(self.freq, 0)
 
-
+win = pg.GraphicsWindow(title="Basic plotting examples")
+win.resize(1000,600)
+pg.setConfigOptions(antialias=True)
+p6 = win.addPlot(title="Scanning")
+curve = p6.plot(pen='y')
+ptr=0
 def main(top_block_cls=airspy_scan2, options=None):
+    global curve, ptr, p6
 
-    # from distutils.version import StrictVersion
-    # if StrictVersion(Qt.qVersion()) >= StrictVersion("4.5.0"):
-    #     style = gr.prefs().get_string('qtgui', 'style', 'raster')
-    #     Qt.QApplication.setGraphicsSystem(style)
-    qapp = Qt.QApplication(sys.argv)
+    alpha=0.1
+    qapp=QtGui.QApplication.instance()
 
     tb = top_block_cls()
+    tb.top_layout.addWidget(win)
     tb.start()
     tb.show()
 
     def quitting():
         tb.stop()
         tb.wait()
+    def update():
+        global curve, ptr, p6
+        if ptr>=1:
+            data=np.abs(tb.xzyblocks_fft_scan_plot_py_vc_0.plotData)
+            data[data<1e-6]=1e-6
+            ydata=20*np.log10(data)
+            curve.setData(x=tb.xzyblocks_fft_scan_plot_py_vc_0.xaxisData/1000000.0,y=ydata)
+        elif ptr==1:
+            p6.enableAutoRange('xy', False)
+        ptr += 1
+
+    timer = QtCore.QTimer()
+    timer.timeout.connect(update)
+    timer.start(50)
+    print np.shape(tb.xzyblocks_fft_scan_plot_py_vc_0.plotData)
     qapp.connect(qapp, Qt.SIGNAL("aboutToQuit()"), quitting)
     qapp.exec_()
-
 
 if __name__ == '__main__':
     main()
