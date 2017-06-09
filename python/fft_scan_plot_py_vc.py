@@ -66,10 +66,11 @@ class fft_scan_plot_py_vc(gr.sync_block):
         self.protectNum=protectNum
         self.numAfterSet=0
         self.spectOverlapPNum=spectOverlapPNum
-        ratio=(Nfft-spectOverlapPNum)/Nfft
-        if(ratio<=0):
+        self.ratio=(Nfft-spectOverlapPNum)/Nfft
+        
+        if(self.ratio<=0):
             raise ArithmeticError("Wrong Overlap")
-        self.deltaFreq=sampRate*ratio
+        self.deltaFreq=sampRate*self.ratio
         N=np.ceil((freqMax-freqMin)/(self.deltaFreq))
         self.freqSetInd=0
         self.freqSetList=[freqMin+n*self.deltaFreq for n in range(int(N))]
@@ -90,7 +91,9 @@ class fft_scan_plot_py_vc(gr.sync_block):
         in0 = input_items[0]
 
         if(self.numAfterSet==self.protectNum):
-            X=fftshift(fft(in0[0]*self.window))/self.Nfft
+            #X=fftshift(fft(in0[0]*self.window))/self.Nfft
+            in0[in0==0]=1e-10 # in case airspy is not ready
+            X=20*np.log10(np.abs(fftshift(fft(in0[0]*self.window))/self.Nfft))
             if self.spectOverlapPNum>0:
                 if self.numFrameGet>10:
                     fft_scan_plot_py_vc.plotData[self.freqSetInd*self.Ne:
@@ -122,6 +125,25 @@ class fft_scan_plot_py_vc(gr.sync_block):
             self.numAfterSet+=1
 
         return len(input_items[0])
+
+    def set_samp_rate(self, samp_rate):
+        """
+        change parameters after the device's samperate changed.
+        """
+        self.sampRate=samp_rate
+        self.numAfterSet=0 #每次设置完频率后，为了保险，略去的输入次数
+        self.deltaFreq=samp_rate*self.ratio #每组FFT覆盖的频带宽度
+        self.Ne=self.Nfft-self.spectDropPNum*2 #每组FFT中最终有效的频点数
+        N=np.ceil((self.freqMax-self.freqMin)/(self.deltaFreq)) #扫描范围内需要多少组FFT
+        self.freqSetInd=0
+        self.freqSetList=[self.freqMin+n*self.deltaFreq for n in range(int(N))] #FFT频带中心
+        print self.freqSetList
+        self.numFrameGet=0
+        #Initialize the specturm and freq-axis 
+        fft_scan_plot_py_vc.plotData=np.zeros(int(N*self.Ne),dtype=complex)
+        fft_scan_plot_py_vc.xaxisData=np.linspace(self.freqMin-self.sampRate/self.Nfft*self.Ne/2,
+                                      self.freqSetList[-1]+self.sampRate/self.Nfft*self.Ne/2,
+                                      int(N*self.Ne))
 
     def set_alpha(self,alpha):
         self.alpha=alpha

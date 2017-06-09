@@ -75,6 +75,11 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         samprateLabel = Qt.QLabel("f<sub>s</sub>:")
         self.samprateComboBox = QComboBox()
         self.samprateComboBox.addItems(["2.5M", "10M"])
+        alphaLabel = Qt.QLabel("alpha:")
+        self.alphaSpinBox=Qt.QDoubleSpinBox()
+        self.alphaSpinBox.setValue(0.1)
+        self.alphaSpinBox.setRange(0,1)
+        self.alphaSpinBox.setSingleStep(0.01)
         freqMinLabel = Qt.QLabel("f<sub>min</sub>(MHz):")
         self.freqMinSpinBox=Qt.QSpinBox()
         #self.freqMinSpinBox.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
@@ -85,6 +90,8 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         self.freqMaxSpinBox.setRange(40,1010)
         self.saveCheckBox = Qt.QCheckBox("save raw IQ")
         paraLayout.addStretch()
+        paraLayout.addWidget(alphaLabel)
+        paraLayout.addWidget(self.alphaSpinBox)
         paraLayout.addWidget(samprateLabel)
         paraLayout.addWidget(self.samprateComboBox)
         paraLayout.addWidget(freqMinLabel)
@@ -92,6 +99,7 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         paraLayout.addWidget(freqMaxLabel)
         paraLayout.addWidget(self.freqMaxSpinBox)
         paraLayout.addWidget(self.saveCheckBox)
+
 
         self.top_layout.addLayout(paraLayout)
         self.osmosdr_source_1 = osmosdr.source( args="numchan=" + str(1) + " " + 'airspy' )
@@ -113,6 +121,8 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         #freqMin,freqMax=40e6,800e6
         freqCenter=freqMin
         self.osmosdr_source_1.set_center_freq(freqCenter, 0)
+        self.freqMinSpinBox.setValue(freqMin/1e6)
+        self.freqMaxSpinBox.setValue(freqMax/1e6)
         self.xzyblocks_fft_scan_plot_py_vc_0 = xzyblocks.fft_scan_plot_py_vc(self.osmosdr_source_1, samp_rate, 1024, freqCenter, freqMin, freqMax,25,512,alpha=0.1)
         #self.xzyblocks_fft_scan_plot_py_vc_0 = xzyblocks.fft_scan_plot_py_vc()
         self.blocks_stream_to_vector_0 = blocks.stream_to_vector(gr.sizeof_gr_complex*1, 1024)
@@ -124,6 +134,15 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         self.connect((self.osmosdr_source_1, 0), (self.blocks_stream_to_vector_0, 0))
         #self.connect((self.osmosdr_source_1, 0), (self.qtgui_time_sink_x_0, 0))
 
+
+        self.samprateComboBox.connect(self.samprateComboBox, Qt.SIGNAL("currentIndexChanged(int)"), self.updateSamprate)
+        self.freqMaxSpinBox.connect(self.freqMaxSpinBox, Qt.SIGNAL("valueChanged(int)"), self.updateFreq)
+        self.freqMinSpinBox.connect(self.freqMinSpinBox, Qt.SIGNAL("valueChanged(int)"), self.updateFreq)
+        self.alphaSpinBox.connect(self.alphaSpinBox, Qt.SIGNAL("valueChanged(double)"), self.updateAlpha)
+
+
+    def updateAlpha(self, alpha):
+        self.xzyblocks_fft_scan_plot_py_vc_0.set_alpha(alpha)
     def closeEvent(self, event):
         self.settings = Qt.QSettings("GNU Radio", "airspy_scan2")
         self.settings.setValue("geometry", self.saveGeometry())
@@ -135,7 +154,22 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
         #self.qtgui_time_sink_x_0.set_samp_rate(self.samp_rate)
+        self.lock()
         self.osmosdr_source_1.set_sample_rate(self.samp_rate)
+        time.sleep(1)
+        self.unlock()
+
+    def updateFreq(self,freq):
+        print freq
+
+
+    def updateSamprate(self):
+        #pass
+        if self.samprateComboBox.currentIndex() == 0:
+            self.set_samp_rate(2500000)
+        else:
+            self.set_samp_rate(10000000)
+
 
     def get_freq(self):
         return self.freq
@@ -167,9 +201,11 @@ def main(top_block_cls=airspy_scan2, options=None):
     def update():
         global curve, ptr, p6
         if ptr>=1:
-            data=np.abs(tb.xzyblocks_fft_scan_plot_py_vc_0.plotData)
-            data[data<1e-6]=1e-6
-            ydata=20*np.log10(data)
+            #data=np.abs(tb.xzyblocks_fft_scan_plot_py_vc_0.plotData)
+            # data[data<1e-6]=1e-6
+            # ydata=20*np.log10(data)
+            data=np.real(tb.xzyblocks_fft_scan_plot_py_vc_0.plotData)
+            ydata=data
             curve.setData(x=tb.xzyblocks_fft_scan_plot_py_vc_0.xaxisData/1000000.0,y=ydata)
         elif ptr==1:
             p6.enableAutoRange('xy', False)
