@@ -63,8 +63,8 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         ##################################################
         # Variables
         ##################################################
-        self.samp_rate = samp_rate = 2500000
-        #self.samp_rate = samp_rate = 2500000 * 4
+        #self.samp_rate = samp_rate = 2500000
+        self.samp_rate = samp_rate = 2500000 * 4
         self.freq = freq = 88e6
 
         ##################################################
@@ -75,21 +75,40 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         samprateLabel = Qt.QLabel("f<sub>s</sub>:")
         self.samprateComboBox = QComboBox()
         self.samprateComboBox.addItems(["2.5M", "10M"])
+        if samp_rate==2500000:
+            self.samprateComboBox.setCurrentIndex(0)
+        else:
+            self.samprateComboBox.setCurrentIndex(1)
+
+        nSkipLabel = Qt.QLabel("N<sub>skip</sub>:")
+        self.nSkipSpinBox=Qt.QSpinBox()
+        self.nSkipSpinBox.setRange(4,100)
+        self.numSkip=15
+        self.nSkipSpinBox.setValue(self.numSkip)
+        self.nSkipButton=Qt.QPushButton("Set ns")
+        self.nSkipButton.setEnabled(False)
         alphaLabel = Qt.QLabel("alpha:")
         self.alphaSpinBox=Qt.QDoubleSpinBox()
         self.alphaSpinBox.setValue(0.1)
         self.alphaSpinBox.setRange(0,1)
         self.alphaSpinBox.setSingleStep(0.01)
-        freqMinLabel = Qt.QLabel("f<sub>min</sub>(MHz):")
+        freqMinLabel = Qt.QLabel("f<sub>min</sub>:")
         self.freqMinSpinBox=Qt.QSpinBox()
+        self.freqMinSpinBox.setSuffix("MHz")
         #self.freqMinSpinBox.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
-        self.freqMinSpinBox.setRange(30,1000)
-        freqMaxLabel = Qt.QLabel("f<sub>max</sub>(MHz):")
+        self.freqMinSpinBox.setRange(30,1800)
+        freqMaxLabel = Qt.QLabel("f<sub>max</sub>:")
         self.freqMaxSpinBox=Qt.QSpinBox()
+        self.freqMaxSpinBox.setSuffix("MHz")
         #self.freqMaxSpinBox.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
-        self.freqMaxSpinBox.setRange(40,1010)
+        self.freqMaxSpinBox.setRange(40,1800)
         self.saveCheckBox = Qt.QCheckBox("save raw IQ")
+        self.freqSetButton = Qt.QPushButton("Set f")
+        self.freqSetButton.setEnabled(False)
         paraLayout.addStretch()
+        paraLayout.addWidget(nSkipLabel)
+        paraLayout.addWidget(self.nSkipSpinBox)
+        paraLayout.addWidget(self.nSkipButton)
         paraLayout.addWidget(alphaLabel)
         paraLayout.addWidget(self.alphaSpinBox)
         paraLayout.addWidget(samprateLabel)
@@ -98,6 +117,7 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         paraLayout.addWidget(self.freqMinSpinBox)
         paraLayout.addWidget(freqMaxLabel)
         paraLayout.addWidget(self.freqMaxSpinBox)
+        paraLayout.addWidget(self.freqSetButton)
         paraLayout.addWidget(self.saveCheckBox)
 
 
@@ -115,7 +135,7 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         self.osmosdr_source_1.set_antenna('', 0)
         self.osmosdr_source_1.set_bandwidth(0, 0)
 
-        freqMin,freqMax=88e6,108e6
+        freqMin,freqMax=890e6,909e6
         # freqMin,freqMax=400e6,420e6
         # freqMin,freqMax=118e6,136e6
         #freqMin,freqMax=40e6,800e6
@@ -123,7 +143,7 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         self.osmosdr_source_1.set_center_freq(freqCenter, 0)
         self.freqMinSpinBox.setValue(freqMin/1e6)
         self.freqMaxSpinBox.setValue(freqMax/1e6)
-        self.xzyblocks_fft_scan_plot_py_vc_0 = xzyblocks.fft_scan_plot_py_vc(self.osmosdr_source_1, samp_rate, 1024, freqCenter, freqMin, freqMax,25,512,alpha=0.1)
+        self.xzyblocks_fft_scan_plot_py_vc_0 = xzyblocks.fft_scan_plot_py_vc(self.osmosdr_source_1, samp_rate, 1024, freqCenter, freqMin, freqMax,self.numSkip,512,alpha=0.1)
         #self.xzyblocks_fft_scan_plot_py_vc_0 = xzyblocks.fft_scan_plot_py_vc()
         self.blocks_stream_to_vector_0 = blocks.stream_to_vector(gr.sizeof_gr_complex*1, 1024)
 
@@ -139,6 +159,12 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         self.freqMaxSpinBox.connect(self.freqMaxSpinBox, Qt.SIGNAL("valueChanged(int)"), self.updateFreq)
         self.freqMinSpinBox.connect(self.freqMinSpinBox, Qt.SIGNAL("valueChanged(int)"), self.updateFreq)
         self.alphaSpinBox.connect(self.alphaSpinBox, Qt.SIGNAL("valueChanged(double)"), self.updateAlpha)
+        self.freqSetButton.connect(self.freqSetButton,Qt.SIGNAL("clicked()"),self.freqSet)
+        self.nSkipSpinBox.connect(self.nSkipSpinBox, Qt.SIGNAL("valueChanged(int)"),lambda: self.nSkipButton.setEnabled(True))
+        self.nSkipButton.connect(self.nSkipButton, Qt.SIGNAL("clicked()"), self.numSkipUpdate)
+
+    def numSkipUpdate(self):
+        self.xzyblocks_fft_scan_plot_py_vc_0.set_numSkip(self.nSkipSpinBox.value())
 
 
     def updateAlpha(self, alpha):
@@ -155,13 +181,28 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         self.samp_rate = samp_rate
         #self.qtgui_time_sink_x_0.set_samp_rate(self.samp_rate)
         self.lock()
-        self.osmosdr_source_1.set_sample_rate(self.samp_rate)
-        time.sleep(1)
+        self.osmosdr_source_1.set_sample_rate(samp_rate)
+        self.xzyblocks_fft_scan_plot_py_vc_0.set_samp_rate(samp_rate)
+        time.sleep(0.01)
         self.unlock()
+    
+    def freqSet(self):
+        self.lock()
+        self.xzyblocks_fft_scan_plot_py_vc_0.set_freqRange(self.freqMinSpinBox.value() *1e6,
+                                                           self.freqMaxSpinBox.value() *1e6)
+        self.unlock()
+        self.freqSetButton.setEnabled(False)
 
     def updateFreq(self,freq):
-        print freq
+        if self.freqMinSpinBox.value()<=self.freqMaxSpinBox.value():
+            self.freqSetButton.setEnabled(True)
+        else:
+            self.freqSetButton.setEnabled(False)
 
+    def updateFreqMax(self,freq):
+        self.stop()
+        self.xzyblocks_fft_scan_plot_py_vc_0.set_freqMax(freq*1e6)
+        self.run()
 
     def updateSamprate(self):
         #pass
@@ -204,7 +245,7 @@ def main(top_block_cls=airspy_scan2, options=None):
             #data=np.abs(tb.xzyblocks_fft_scan_plot_py_vc_0.plotData)
             # data[data<1e-6]=1e-6
             # ydata=20*np.log10(data)
-            data=np.real(tb.xzyblocks_fft_scan_plot_py_vc_0.plotData)
+            data=tb.xzyblocks_fft_scan_plot_py_vc_0.plotData
             ydata=data
             curve.setData(x=tb.xzyblocks_fft_scan_plot_py_vc_0.xaxisData/1000000.0,y=ydata)
         elif ptr==1:

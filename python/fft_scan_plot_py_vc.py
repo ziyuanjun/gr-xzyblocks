@@ -26,14 +26,13 @@ from numpy.fft import fft, fftshift
 from gnuradio import gr
 from scipy import signal
 import sys,time
+import threading
 
 class fft_scan_plot_py_vc(gr.sync_block):
     """
     docstring for block fft_scan_plot_py_vc
     """
 
-    plotData=np.zeros(1024)
-    xaxisData=np.linspace(30,100,1024)
     def __init__(self, device, sampRate=2.5e6, Nfft=1024, freqCenter=30e6,
                  freqMin=30e6, freqMax=2e9, protectNum=15, spectOverlapPNum=0,
                  window=None,alpha=1):
@@ -51,41 +50,67 @@ class fft_scan_plot_py_vc(gr.sync_block):
                     we must drop some FFT points. To get a continous specturm, we let
                     two adjacent FFT overlapped.
         """
+        self.lock=threading.Lock()
 
         gr.sync_block.__init__(self,
             name="fft_scan_sink_py_vcc",
             in_sig=[(numpy.complex64,Nfft)],
             out_sig=None)
-        self.Nfft=Nfft
-        self.device=device
         self.freqCenter=freqCenter
         self.freqMin=freqMin
         self.freqMax=freqMax
         self.sampRate=sampRate
-        self.figCount=0
-        self.protectNum=protectNum
-        self.numAfterSet=0
+        self.device=device
+
+        self.Nfft=Nfft
+        self.protectNum=protectNum #skip some inputs to let device ready
         self.spectOverlapPNum=spectOverlapPNum
-        self.ratio=(Nfft-spectOverlapPNum)/Nfft
-        
-        if(self.ratio<=0):
-            raise ArithmeticError("Wrong Overlap")
-        self.deltaFreq=sampRate*self.ratio
-        N=np.ceil((freqMax-freqMin)/(self.deltaFreq))
-        self.freqSetInd=0
-        self.freqSetList=[freqMin+n*self.deltaFreq for n in range(int(N))]
-        print self.freqSetList
         self.spectDropPNum=int(spectOverlapPNum/2)
-        self.window = signal.blackman(Nfft)
-        print "win shape: ", np.shape(self.window)
-        self.numFrameGet=0
-        self.Ne=Nfft-self.spectDropPNum*2
-        fft_scan_plot_py_vc.plotData=np.zeros(int(N*self.Ne),dtype=complex)
-        fft_scan_plot_py_vc.xaxisData=np.linspace(freqMin-sampRate/Nfft*self.Ne/2,
-                                                  self.freqSetList[-1]+sampRate/Nfft*self.Ne/2,
-                                                  int(N*self.Ne))
+        self.window = signal.blackman(self.Nfft)
+        self.numAfterSet=0 #inputs skipping counter
+
         self.alpha=alpha
 
+        # update the freqlist for scanning
+        self.updateFreqlist()
+
+    def set_numSkip(self, value):
+        self.lock.acquire()
+        self.protectNum=value
+        self.lock.release()
+
+    def set_freqRange(self, freqMin, freqMax):
+        self.freqMin=freqMin
+        self.freqMax=freqMax
+        self.updateFreqlist()
+
+    def updateFreqlist(self):
+
+        self.ratio=(self.Nfft-self.spectOverlapPNum)/self.Nfft
+        if(self.ratio<=0):
+            raise ArithmeticError("Wrong Overlap")
+        self.deltaFreq=self.sampRate*self.ratio #the valid freq width
+
+
+        self.lock.acquire()
+        self.__Nfreqlist=np.int(np.ceil((self.freqMax-self.freqMin)/(self.deltaFreq)))
+        self.freqSetInd=0
+        self.freqSetList=[]
+        self.freqSetList=[self.freqMin+n*self.deltaFreq for n in range(int(self.__Nfreqlist))]
+        self.freqCenter=self.freqMin
+        self.device.set_center_freq(self.freqCenter, 0)
+        self.numFrameGet=0 #one frame means one total freq list has been scanned
+        self.figCount=0
+        self.Ne=self.Nfft-self.spectDropPNum*2 #the valid points num in one spectrum
+        fft_scan_plot_py_vc.plotData=np.zeros(int(self.__Nfreqlist*self.Ne))
+        fft_scan_plot_py_vc.xaxisData=np.linspace(self.freqMin-self.sampRate/self.Nfft*self.Ne/2,
+                                                  self.freqSetList[-1]+
+                                                  self.sampRate/self.Nfft*self.Ne/2,
+                                                  int(self.__Nfreqlist*self.Ne))
+        self.lock.release()
+
+        print self.freqMin
+        print self.freqSetList
 
     def work(self, input_items, output_items):
         in0 = input_items[0]
@@ -131,37 +156,27 @@ class fft_scan_plot_py_vc(gr.sync_block):
         change parameters after the device's samperate changed.
         """
         self.sampRate=samp_rate
-        self.numAfterSet=0 #每次设置完频率后，为了保险，略去的输入次数
-        self.deltaFreq=samp_rate*self.ratio #每组FFT覆盖的频带宽度
-        self.Ne=self.Nfft-self.spectDropPNum*2 #每组FFT中最终有效的频点数
-        N=np.ceil((self.freqMax-self.freqMin)/(self.deltaFreq)) #扫描范围内需要多少组FFT
-        self.freqSetInd=0
-        self.freqSetList=[self.freqMin+n*self.deltaFreq for n in range(int(N))] #FFT频带中心
-        print self.freqSetList
-        self.numFrameGet=0
-        #Initialize the specturm and freq-axis 
-        fft_scan_plot_py_vc.plotData=np.zeros(int(N*self.Ne),dtype=complex)
-        fft_scan_plot_py_vc.xaxisData=np.linspace(self.freqMin-self.sampRate/self.Nfft*self.Ne/2,
-                                      self.freqSetList[-1]+self.sampRate/self.Nfft*self.Ne/2,
-                                      int(N*self.Ne))
+        self.updateFreqlist()
 
     def set_alpha(self,alpha):
         self.alpha=alpha
 
     def set_freq_via_list(self):
         # change the freqCenter of device
-        Nfreq=len(self.freqSetList)
+        self.lock.acquire()
         self.freqSetInd=self.freqSetInd+1
-        if(self.freqSetInd>=Nfreq):
-            self.freqSetInd=0
+        if(self.freqSetInd>=self.__Nfreqlist):
+            self.freqSetInd=0 #index of the current device freq in the List
             self.numFrameGet+=1
             header=str(self.numFrameGet)
             sys.stdout.write('\r')
-            sys.stdout.write(' ' * (Nfreq+len(header)+1) +'|\r')
+            sys.stdout.write(' ' * (self.__Nfreqlist+len(header)+1) +'|\r')
             sys.stdout.write(header+'|')
             sys.stdout.flush()
         self.freqCenter=self.freqSetList[self.freqSetInd]
         self.device.set_center_freq(self.freqCenter, 0)
+
+        self.lock.release()
         sys.stdout.write('#')
         sys.stdout.flush()
 
