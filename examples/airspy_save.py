@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 ##################################################
 # GNU Radio Python Flow Graph
-# Title: Airspy Fm
-# Generated: Fri Jun 16 15:26:40 2017
+# Title: Airspy Save
+# Generated: Wed Jun 14 08:31:49 2017
 ##################################################
 
 if __name__ == '__main__':
@@ -16,10 +16,8 @@ if __name__ == '__main__':
         except:
             print "Warning: failed to XInitThreads()"
 
-from gnuradio import analog
-from gnuradio import audio
+from gnuradio import blocks
 from gnuradio import eng_notation
-from gnuradio import filter
 from gnuradio import gr
 from gnuradio import wxgui
 from gnuradio.eng_option import eng_option
@@ -34,10 +32,10 @@ import time
 import wx
 
 
-class airspy_FM(grc_wxgui.top_block_gui):
+class airspy_save(grc_wxgui.top_block_gui):
 
     def __init__(self):
-        grc_wxgui.top_block_gui.__init__(self, title="Airspy Fm")
+        grc_wxgui.top_block_gui.__init__(self, title="Airspy Save")
         _icon_path = "/usr/share/icons/hicolor/32x32/apps/gnuradio-grc.png"
         self.SetIcon(wx.Icon(_icon_path, wx.BITMAP_TYPE_ANY))
 
@@ -67,12 +65,6 @@ class airspy_FM(grc_wxgui.top_block_gui):
         	peak_hold=False,
         )
         self.Add(self.wxgui_fftsink2_0.win)
-        self.rational_resampler_xxx_0 = filter.rational_resampler_fff(
-                interpolation=48,
-                decimation=500,
-                taps=None,
-                fractional_bw=None,
-        )
         self.osmosdr_source_1 = osmosdr.source( args="numchan=" + str(1) + " " + 'airspy' )
         self.osmosdr_source_1.set_sample_rate(samp_rate)
         self.osmosdr_source_1.set_center_freq(freq, 0)
@@ -86,8 +78,6 @@ class airspy_FM(grc_wxgui.top_block_gui):
         self.osmosdr_source_1.set_antenna('', 0)
         self.osmosdr_source_1.set_bandwidth(0, 0)
 
-        self.low_pass_filter_0 = filter.fir_filter_ccf(4, firdes.low_pass(
-        	1, samp_rate, 100000, 1000000, firdes.WIN_HAMMING, 6.76))
         _freq_slider_sizer = wx.BoxSizer(wx.VERTICAL)
         self._freq_slider_text_box = forms.text_box(
         	parent=self.GetWin(),
@@ -111,20 +101,14 @@ class airspy_FM(grc_wxgui.top_block_gui):
         	proportion=1,
         )
         self.Add(_freq_slider_sizer)
-        self.audio_sink_0 = audio.sink(48000, '', True)
-        self.analog_wfm_rcv_0 = analog.wfm_rcv(
-        	quad_rate=500000,
-        	audio_decimation=1,
-        )
+        self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_gr_complex*1, '/home/ziyuan/gr-xzyblocks/examples/data.dat', True)
+        self.blocks_file_sink_0.set_unbuffered(False)
 
         ##################################################
         # Connections
         ##################################################
-        self.connect((self.analog_wfm_rcv_0, 0), (self.rational_resampler_xxx_0, 0))
-        self.connect((self.low_pass_filter_0, 0), (self.analog_wfm_rcv_0, 0))
-        self.connect((self.osmosdr_source_1, 0), (self.low_pass_filter_0, 0))
+        self.connect((self.osmosdr_source_1, 0), (self.blocks_file_sink_0, 0))
         self.connect((self.osmosdr_source_1, 0), (self.wxgui_fftsink2_0, 0))
-        self.connect((self.rational_resampler_xxx_0, 0), (self.audio_sink_0, 0))
 
     def get_freq_slider(self):
         return self.freq_slider
@@ -142,7 +126,6 @@ class airspy_FM(grc_wxgui.top_block_gui):
         self.samp_rate = samp_rate
         self.wxgui_fftsink2_0.set_sample_rate(self.samp_rate)
         self.osmosdr_source_1.set_sample_rate(self.samp_rate)
-        self.low_pass_filter_0.set_taps(firdes.low_pass(1, self.samp_rate, 100000, 1000000, firdes.WIN_HAMMING, 6.76))
 
     def get_freq(self):
         return self.freq
@@ -153,7 +136,7 @@ class airspy_FM(grc_wxgui.top_block_gui):
         self.osmosdr_source_1.set_center_freq(self.freq, 0)
 
 
-def main(top_block_cls=airspy_FM, options=None):
+def main(top_block_cls=airspy_save, options=None):
 
     tb = top_block_cls()
     tb.Start(True)

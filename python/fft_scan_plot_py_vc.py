@@ -22,6 +22,7 @@
 from __future__ import division
 import numpy
 import numpy as np
+import pandas as pd
 from numpy.fft import fft, fftshift
 from gnuradio import gr
 from scipy import signal
@@ -35,7 +36,7 @@ class fft_scan_plot_py_vc(gr.sync_block):
 
     def __init__(self, device, sampRate=2.5e6, Nfft=1024, freqCenter=30e6,
                  freqMin=30e6, freqMax=2e9, protectNum=15, spectOverlapPNum=0,
-                 window=None,alpha=1):
+                 window=None,alpha=1, saveFlag=False):
         """
         device: freq scanning device
         sampRate: device real samplerate
@@ -70,6 +71,7 @@ class fft_scan_plot_py_vc(gr.sync_block):
         self.numAfterSet=0 #inputs skipping counter
 
         self.alpha=alpha
+        self.saveFlag=saveFlag
 
         # update the freqlist for scanning
         self.updateFreqlist()
@@ -107,6 +109,11 @@ class fft_scan_plot_py_vc(gr.sync_block):
                                                   self.freqSetList[-1]+
                                                   self.sampRate/self.Nfft*self.Ne/2,
                                                   int(self.__Nfreqlist*self.Ne))
+        x={freq:np.zeros(self.Nfft) for freq in self.freqSetList}
+        self.df = pd.DataFrame(x)
+        self.fileName=time.strftime('%Y%m%d-%H%M%S',time.localtime(time.time()))+"IQ-%.2fM"%(self.sampRate/1e6)+".cvs"
+        self.df.to_csv(self.fileName,index=False)
+        self.IsNewfile=True
         self.lock.release()
 
         print self.freqMin
@@ -117,7 +124,9 @@ class fft_scan_plot_py_vc(gr.sync_block):
 
         if(self.numAfterSet==self.protectNum):
             #X=fftshift(fft(in0[0]*self.window))/self.Nfft
-            in0[in0==0]=1e-10 # in case airspy is not ready
+            self.df.iloc[:,self.freqSetInd]=in0[0]
+            #in0[in0==0]=1e-10 # in case airspy is not ready
+
             X=20*np.log10(np.abs(fftshift(fft(in0[0]*self.window))/self.Nfft))
             if self.spectOverlapPNum>0:
                 if self.numFrameGet>10:
@@ -166,6 +175,14 @@ class fft_scan_plot_py_vc(gr.sync_block):
         self.lock.acquire()
         self.freqSetInd=self.freqSetInd+1
         if(self.freqSetInd>=self.__Nfreqlist):
+            if self.IsNewfile:
+                with open(self.fileName, 'w') as f:
+                    self.df.to_csv(f)
+                self.IsNewfile=False
+            else:
+                with open(self.fileName,'a') as f:
+                    self.df.to_csv(f, header=False)
+
             self.freqSetInd=0 #index of the current device freq in the List
             self.numFrameGet+=1
             header=str(self.numFrameGet)

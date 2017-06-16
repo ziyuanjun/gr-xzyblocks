@@ -83,7 +83,7 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         nSkipLabel = Qt.QLabel("N<sub>skip</sub>:")
         self.nSkipSpinBox=Qt.QSpinBox()
         self.nSkipSpinBox.setRange(4,100)
-        self.numSkip=15
+        self.numSkip=25
         self.nSkipSpinBox.setValue(self.numSkip)
         self.nSkipButton=Qt.QPushButton("Set ns")
         self.nSkipButton.setEnabled(False)
@@ -135,7 +135,7 @@ class airspy_scan2(gr.top_block, Qt.QWidget):
         self.osmosdr_source_1.set_antenna('', 0)
         self.osmosdr_source_1.set_bandwidth(0, 0)
 
-        freqMin,freqMax=890e6,909e6
+        freqMin,freqMax=88e6,109e6
         # freqMin,freqMax=400e6,420e6
         # freqMin,freqMax=118e6,136e6
         #freqMin,freqMax=40e6,800e6
