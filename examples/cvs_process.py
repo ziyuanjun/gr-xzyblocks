@@ -42,4 +42,19 @@ for n in range(1,Num_freq_shift+1):
     ax.axis('tight')
 
 
+from spectrum import *
+for n in range(1,Num_freq_shift+1):
+    faxis=(freq_axis+float(df.columns[n]))/1e6
+    if((n-1)%9==0):
+        plt.figure()
+    plt.subplot(num_row,num_row,(n-1)%9+1)
+    for i in range(K):
+        data=df.iloc[1024+i*N:1024+i*N+N,n].apply(lambda x : np.complex(x))
+        res=pmtm(data.values, NW=2.5, show=False)
+        #xx=np.mean(res[0],axis=0)
+        xx=res[0][0]
+        plt.plot(faxis, np.log10(np.fft.fftshift(np.abs(xx))))
+    ax=plt.gca()
+    ax.axis('tight')
+
 plt.show()

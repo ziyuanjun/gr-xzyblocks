@@ -1,0 +1,133 @@
+# -*- eval: (setq org-download-image-dir (file-name-sans-extension (buffer-name))); -*-
+# -*- org-export-babel-evaluate: nil; -*-
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="../orgstyle.css"/>
+#+OPTIONS: ':nil *:t -:t ::t <:t H:3 \n:t arch:headline author:t c:nil S:nil -:nil
+#+OPTIONS: creator:nil d:(not "En") date:t e:t email:nil f:t inline:t
+#+OPTIONS: num:t p:nil pri:nil prop:nil stat:t tags:t tasks:t tex:t timestamp:t
+#+OPTIONS: title:t toc:t todo:t |:t 
+#+OPTIONS: ^:{}
+#+LATEX_CLASS: ctexart
+#+STARTUP: entitiespretty:t
+#+TITLE: 谱分析方法总结
+#+SELECT_TAGS: export
+#+EXCLUDE_TAGS: noexport
+#+CREATOR: Emacs 26.0.50.2 (Org mode 9.0.4)
+
+* 基本方法
+- 连续傅里叶变换
+  \begin{equation}
+  X(f)=\int_{-\infty}^{+\infty}x(t)e^{-j2\pi ft}dt
+  \end{equation}
+
+- DTFT
+
+  - 无限长序列
+    \begin{equation}
+    X(f)=\sum_{n=-\infty}^{+\infty}x(n)e^{-j2\pi f\frac{n}{f_s}}
+    \end{equation}
+    时域fs采样 $\longrightarrow$ 频域fs周期延拓
+
+  - 有限序列
+    \begin{equation}
+    X(f)=\sum_{n=0}^{N-1}x(n)e^{-j2\pi f\frac{n}{f_s}}
+    \end{equation}
+
+- DFT
+    \begin{align}
+    X(k)=&\sum_{n=0}^{N-1}x(n)e^{-j\frac{2\pi}{N}kn}\\\notag
+        =&\sum_{n=0}^{N-1}x(n)W_{N}^{kn}
+    \end{align}
+
+* 仿真
+  假设存在三个单音信号,100Hz、200Hz、201Hz, 幅度分别为1、2、2.3, 采样率 fs=1000Hz, 时域波形生成：
+  #+BEGIN_SRC python :session spectral :results file
+  import numpy as np
+  import matplotlib.pyplot as plt
+
+  a1,a2,a3=1,2,2.3
+  f1,f2,f3=100,200,201
+
+  fs=1000.0 #samprate (Hz)
+  T=1 #total time of signal (s)
+
+  t=np.array(range(int(T*fs)))*1.0/fs
+  s1=np.cos(2*np.pi*f1*t)
+  s2=np.cos(2*np.pi*f2*t)
+  s3=np.cos(2*np.pi*f3*t)
+
+  s=s1+s2+s3
+
+  plt.plot(t,s)
+  plt.savefig('spectral_est.org_imgs/wave.png')
+  'spectral_est.org_imgs/wave.png' # return this to org-mode
+  #+END_SRC
+
+  #+RESULTS:
+  [[file:spectral_est.org_imgs/wave.png]]
+
+  #+BEGIN_SRC python :session spectral :results file
+  plt.clf()
+  S=np.fft.fft(s)/len(s)
+  plt.plot(np.linspace(0,fs,len(s)),20*np.log10(np.abs(S)))
+  plt.savefig('spectral_est.org_imgs/spectral.png')
+  'spectral_est.org_imgs/spectral.png'
+  #+END_SRC
+
+  #+RESULTS:
+  [[file:spectral_est.org_imgs/spectral.png]]
+
+  上面例子中，FFT 的分析频率为 fs/N=1Hz, 但200Hz 和 201Hz 似乎并没有分开，通过局部放大可以确认：
+  #+BEGIN_SRC python :session spectral :results file
+  ax=plt.gca()
+  plt.axis([190,210,-350,0])
+  plt.savefig('spectral_est.org_imgs/spectral_localzoom.png')
+  'spectral_est.org_imgs/spectral_localzoom.png'
+  #+END_SRC
+
+  #+RESULTS:
+  [[file:spectral_est.org_imgs/spectral_localzoom.png]]
+
+  这也说明了分析频率并不等同于频谱分辨率，是否可以使用和FFT相同数量的采样数据获得更高的频谱分辨率呢？
+
+  下面我们来使用DTFT, 增加频谱分析的点数。
+
+  #+BEGIN_SRC python :session spectral :results file
+  f_anayse=np.linspace(190,210,200)
+  X=np.zeros(len(f_anayse))
+  for i,fi in enumerate(f_anayse):
+      a=np.exp(-1j*2*np.pi*fi*t)
+      X[i]=np.dot(s,a)
+
+  plt.clf()
+  plt.plot(f_anayse,20*np.log10(np.abs(X)/len(s)))
+  plt.grid(b='on')
+  plt.axis([190,210,-50,0])
+  plt.savefig('spectral_est.org_imgs/spectral_DTFT_localzoom.png')
+  'spectral_est.org_imgs/spectral_DTFT_localzoom.png'
+  #+END_SRC
+
+  #+RESULTS:
+  [[file:spectral_est.org_imgs/spectral_DTFT_localzoom.png]]
+
+  可以看到，增加频谱分析的点数之后，200、201Hz 就可以分开了，此时的分析频率为20/200=0.1Hz。但是谱的副瓣很高。
+  将整个频谱都用DTFT 的方式给出：
+
+  #+BEGIN_SRC python :session spectral :results file
+  N=int(fs/0.1)
+  f_anayse=np.linspace(0,fs,N)
+  X=np.zeros(len(f_anayse))
+  for i,fi in enumerate(f_anayse):
+      a=np.exp(-1j*2*np.pi*fi*t)
+      X[i]=np.dot(s,a)
+
+  plt.clf()
+  plt.plot(f_anayse,20*np.log10(np.abs(X)/len(s)))
+  plt.grid(b='on')
+  plt.savefig('spectral_est.org_imgs/spectral_DTFT.png')
+  'spectral_est.org_imgs/spectral_DTFT.png'
+  #+END_SRC
+
+  #+RESULTS:
+  [[file:spectral_est.org_imgs/spectral_DTFT.png]]
+
+  DTFT的计算结果似乎副瓣明显高于FFT的结果，这不科学！
