@@ -57,6 +57,7 @@
 
   s=s1+s2+s3
 
+  plt.clf()
   plt.plot(t,s)
   plt.savefig('spectral_est.org_imgs/wave.png')
   'spectral_est.org_imgs/wave.png' # return this to org-mode
@@ -92,7 +93,7 @@
   下面我们来使用DTFT, 增加频谱分析的点数。
 
   #+BEGIN_SRC python :session spectral :results file
-  f_anayse=np.linspace(190,210,200)
+  f_anayse=np.linspace(190,210,201)
   X=np.zeros(len(f_anayse))
   for i,fi in enumerate(f_anayse):
       a=np.exp(-1j*2*np.pi*fi*t)
@@ -131,3 +132,81 @@
   [[file:spectral_est.org_imgs/spectral_DTFT.png]]
 
   DTFT的计算结果似乎副瓣明显高于FFT的结果，这不科学！
+  其实上面的结果都没有错，问题的关键在于分析频率的取值点，上图中频点的位置和FFT 的频点位置并不相同（应该是没有一个点是相同的），只要稍微改动一下DTFT 的分析频率点位置，就能得到FFT的结果：
+
+
+  #+BEGIN_SRC python :session spectral :results file
+  plt.clf()
+  plt.figure(figsize=(8,3))
+  N=int(fs/0.1)
+  f_anayse=np.linspace(0,fs,N+1)
+  X=np.zeros(len(f_anayse))
+  for i,fi in enumerate(f_anayse):
+      a=np.exp(-1j*2*np.pi*fi*t)
+      X[i]=np.dot(s,a)
+
+
+  plt.subplot(121)
+  plt.plot(f_anayse,20*np.log10(np.abs(X)/len(s)),'k', alpha=0.2)
+  plt.grid(b='on')
+  plt.subplot(122)
+  plt.plot(f_anayse,20*np.log10(np.abs(X)/len(s)),'k', alpha=0.2)
+  plt.grid(b='on')
+
+  N=len(s)
+  f_anayse=np.linspace(0,fs,N+1)
+  X=np.zeros(len(f_anayse))
+  for i,fi in enumerate(f_anayse):
+      a=np.exp(-1j*2*np.pi*fi*t)
+      X[i]=np.dot(s,a)
+
+  plt.subplot(121)
+  plt.plot(f_anayse,20*np.log10(np.abs(X)/len(s)),'r.')
+  plt.subplot(122)
+  plt.plot(f_anayse,20*np.log10(np.abs(X)/len(s)),'r.')
+  plt.axis([190,210,-350,0])
+  plt.savefig('spectral_est.org_imgs/spectral_DTFT_1.png')
+  'spectral_est.org_imgs/spectral_DTFT_1.png'
+  #+END_SRC
+
+  #+RESULTS:
+  [[file:spectral_est.org_imgs/spectral_DTFT_1.png]]
+
+  有人称这是信号“截取”不完美出现的，实际上信号截取的不同起始时间，相当时移，而时移对应到频域时相移，并不影响幅度谱。真正的原因就是分析频点选取的问题。注意到200、201 之间一个零深，但零深并不足够低，这是不是也是频点没有恰好取到零点的原因呢？
+
+  试试增加点数能否获得更深的零点：
+  #+BEGIN_SRC python :session spectral :results file
+  plt.clf()
+  N=10000
+  f_anayse=np.linspace(195,206,N+1)
+  X=np.zeros(len(f_anayse))
+  for i,fi in enumerate(f_anayse):
+      a=np.exp(-1j*2*np.pi*fi*t)
+      X[i]=np.dot(s,a)
+
+  plt.plot(f_anayse,20*np.log10(np.abs(X)/len(s)),'r')
+  plt.savefig('spectral_est.org_imgs/spectral_DTFT_2.png')
+  'spectral_est.org_imgs/spectral_DTFT_2.png'
+  #+END_SRC
+
+  #+RESULTS:
+  [[file:spectral_est.org_imgs/spectral_DTFT_2.png]]
+
+  这种方法并不可靠，应该理论分析200和201之间是否存在零点，如果存在，它的位置是多少。为了解决这个问题，就要借助z 变换。
+
+* z 变换
+离散时间序列x[n]的Z变换定义为：
+\begin{equation}
+X(z)=\sum_{-\infty}^{+\infty}x[n]Z^{-n}
+\end{equation}
+
+它与傅里叶变换的关系在于： $z=e^{jw}=e^{j2\pi f}$ , z 平面单位圆上的响应就是傅里叶变换。
+
+方程的解的位置能确定出方向图零点的位置：
+\begin{equation}
+\sum_{0}^{N-1}x[n]Z^{-n}=0
+\end{equation}
+
+$N-1$ 阶方程一定存在 $N-1$ 个解，但只有落在单位圆上的解才对应为频谱的零点。
+
+
