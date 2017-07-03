@@ -9,11 +9,9 @@
 #+LATEX_CLASS: ctexart
 #+STARTUP: entitiespretty:t
 #+TITLE: 谱分析方法总结
-#+SELECT_TAGS: export
-#+EXCLUDE_TAGS: noexport
 #+CREATOR: Emacs 26.0.50.2 (Org mode 9.0.4)
 
-* 基本方法
+* 基础知识
 - 连续傅里叶变换
   \begin{equation}
   X(f)=\int_{-\infty}^{+\infty}x(t)e^{-j2\pi ft}dt
@@ -40,7 +38,7 @@
 
 * 仿真
   假设存在三个单音信号,100Hz、200Hz、201Hz, 幅度分别为1、2、2.3, 采样率 fs=1000Hz, 时域波形生成：
-  #+BEGIN_SRC python :session spectral :results file
+  #+BEGIN_SRC python :session spectral :results file 
   import numpy as np
   import matplotlib.pyplot as plt
 
@@ -66,7 +64,7 @@
   #+RESULTS:
   [[file:spectral_est.org_imgs/wave.png]]
 
-  #+BEGIN_SRC python :session spectral :results file
+  #+BEGIN_SRC python :session spectral :results file :exports results
   plt.clf()
   S=np.fft.fft(s)/len(s)
   plt.plot(np.linspace(0,fs,len(s)),20*np.log10(np.abs(S)))
@@ -78,7 +76,7 @@
   [[file:spectral_est.org_imgs/spectral.png]]
 
   上面例子中，FFT 的分析频率为 fs/N=1Hz, 但200Hz 和 201Hz 似乎并没有分开，通过局部放大可以确认：
-  #+BEGIN_SRC python :session spectral :results file
+  #+BEGIN_SRC python :session spectral :results file :exports results
   ax=plt.gca()
   plt.axis([190,210,-350,0])
   plt.savefig('spectral_est.org_imgs/spectral_localzoom.png')
@@ -92,7 +90,7 @@
 
   下面我们来使用DTFT, 增加频谱分析的点数。
 
-  #+BEGIN_SRC python :session spectral :results file
+  #+BEGIN_SRC python :session spectral :results file :exports results
   f_anayse=np.linspace(190,210,201)
   X=np.zeros(len(f_anayse))
   for i,fi in enumerate(f_anayse):
@@ -113,7 +111,7 @@
   可以看到，增加频谱分析的点数之后，200、201Hz 就可以分开了，此时的分析频率为20/200=0.1Hz。但是谱的副瓣很高。
   将整个频谱都用DTFT 的方式给出：
 
-  #+BEGIN_SRC python :session spectral :results file
+  #+BEGIN_SRC python :session spectral :results file :exports results
   N=int(fs/0.1)
   f_anayse=np.linspace(0,fs,N)
   X=np.zeros(len(f_anayse))
@@ -135,7 +133,7 @@
   其实上面的结果都没有错，问题的关键在于分析频率的取值点，上图中频点的位置和FFT 的频点位置并不相同（应该是没有一个点是相同的），只要稍微改动一下DTFT 的分析频率点位置，就能得到FFT的结果：
 
 
-  #+BEGIN_SRC python :session spectral :results file
+  #+BEGIN_SRC python :session spectral :results file :exports results
   plt.clf()
   plt.figure(figsize=(8,3))
   N=int(fs/0.1)
@@ -172,10 +170,10 @@
   #+RESULTS:
   [[file:spectral_est.org_imgs/spectral_DTFT_1.png]]
 
-  有人称这是信号“截取”不完美出现的，实际上信号截取的不同起始时间，相当时移，而时移对应到频域时相移，并不影响幅度谱。真正的原因就是分析频点选取的问题。注意到200、201 之间一个零深，但零深并不足够低，这是不是也是频点没有恰好取到零点的原因呢？
+  有人称这是信号“截取”不完美出现的，实际上不同的信号截取起始时间，相当于信号的时域平移，而时移对应到频域是相移，相移并不会影响幅度谱。真正的原因就是分析频点选取的问题。注意到200、201 之间一个零深，但零深并不足够低，这是否也是频点没有恰好取到零点的原因呢？
 
   试试增加点数能否获得更深的零点：
-  #+BEGIN_SRC python :session spectral :results file
+  #+BEGIN_SRC python :session spectral :results file :exports results 
   plt.clf()
   N=10000
   f_anayse=np.linspace(195,206,N+1)
@@ -192,21 +190,117 @@
   #+RESULTS:
   [[file:spectral_est.org_imgs/spectral_DTFT_2.png]]
 
-  这种方法并不可靠，应该理论分析200和201之间是否存在零点，如果存在，它的位置是多少。为了解决这个问题，就要借助z 变换。
+  这种方法并不可靠，应该理论分析200和201之间是否存在零点，如果存在，它的位置是多少。为了解决这个问题，可以借助z 变换。也可以使用更直接的分析方法。
 
-* z 变换
-离散时间序列x[n]的Z变换定义为：
-\begin{equation}
-X(z)=\sum_{-\infty}^{+\infty}x[n]Z^{-n}
-\end{equation}
+** z 变换
+ 离散时间序列x[n]的Z变换定义为：
+ \begin{equation}
+ X(z)=\sum_{-\infty}^{+\infty}x[n]Z^{-n}
+ \end{equation}
 
-它与傅里叶变换的关系在于： $z=e^{jw}=e^{j2\pi f}$ , z 平面单位圆上的响应就是傅里叶变换。
+ 它与傅里叶变换的关系在于： $z=e^{jw}=e^{j2\pi f}$ , z 平面单位圆上的响应就是傅里叶变换。
 
-方程的解的位置能确定出方向图零点的位置：
-\begin{equation}
-\sum_{0}^{N-1}x[n]Z^{-n}=0
-\end{equation}
+ 方程的解的位置能确定出方向图零点的位置：
+ \begin{equation}
+ \sum_{0}^{N-1}x[n]Z^{-n}=0
+ \end{equation}
 
-$N-1$ 阶方程一定存在 $N-1$ 个解，但只有落在单位圆上的解才对应为频谱的零点。
+ $N-1$ 阶方程一定存在 $N-1$ 个解，但只有落在单位圆上的解才对应为频谱的零点。
+
+
+** 直接分析
+
+  \begin{align}
+  R(f)&=\sum_{n=0}^{N-1}e^{-j2\pi f\frac{n}{f_s}}\\\notag
+&=\frac{1-\exp(-j2\pi f\frac{N}{f_s})}{1-\exp(-j2\pi f\frac{1}{f_s})}\\\notag
+&=\frac{\exp(-j\pi f\frac{N}{f_s})[\exp(j\pi f\frac{N}{f_s})-\exp(-j\pi f\frac{N}{f_s})]}{\exp(-j\pi f\frac{1}{f_s})[\exp(j\pi f\frac{1}{f_s})-\exp(-j\pi f\frac{1}{f_s})]}\\\notag
+&=\frac{\exp(-j\pi f\frac{N}{f_s})\sin(\pi f\frac{N}{f_s})}{\exp(-j\pi f\frac{1}{f_s})\sin(\pi f\frac{1}{f_s})}\\\notag
+&=\exp(-j\pi f\frac{N-1}{f_s})\frac{\sin(\pi f\frac{N}{f_s})}{\sin(\pi f\frac{1}{f_s})}\\\notag
+  \end{align}
+
+  令 $\sin(\pi f\frac{N}{f_s})=0$ 得频谱零点位置为： 
+  \begin{equation}
+  f=k\frac{f_s}{N} \quad\quad (f\neq 0 \text{ or } k\neq 0)
+  \end{equation}
+
+
+结论：
+- 200Hz、201Hz 之间没有零点
+
+  上面给出了矩形窗采样后的频谱零点位置，对于一个单音信号，时域上相当于是单一频率的信号与矩形窗相乘，频域上就是频谱平移。上述例子中，采样率为1000Hz，采样点为1000点，所有整数Hz的频点都是谱零点，根据傅里叶变换的线性性，100Hz、200Hz、201Hz 的信号相加，频域也是相加，它们的零点都在整数频点上，200Hz 和 201Hz 之间并没有零点。因此频谱不会无限深，除非增加时域采样点。
+- 几个频点的信号没有相互影响各自的谱峰高度
+
+  因为某一个谱峰恰好位于其他频点信号的谱零点上。
+- 增加时域的点数会改变上面的结论
+
+  下面给出增加信号时长的仿真：
+
+  #+BEGIN_SRC python :session spectral :results file 
+  fs=1000.0 #samprate (Hz)
+  T=10. #total time of signal (s)
+
+  t=np.array(range(int(T*fs)))*1.0/fs
+  s1=np.cos(2*np.pi*f1*t)
+  s2=np.cos(2*np.pi*f2*t)
+  s3=np.cos(2*np.pi*f3*t)
+
+  s=s1+s2+s3
+  plt.clf()
+  S=np.fft.fft(s)/len(s)
+  plt.plot(np.linspace(0,fs,len(s)),20*np.log10(np.abs(S)))
+  plt.axis([190,210,-350,0])
+  plt.savefig('spectral_est.org_imgs/spectral_bigN.png')
+  'spectral_est.org_imgs/spectral_bigN.png'
+  #+END_SRC
+
+  #+RESULTS:
+  [[file:spectral_est.org_imgs/spectral_bigN.png]]
+
+
+  #+BEGIN_SRC python :session spectral :results file :exports both
+  plt.clf()
+  plt.figure(figsize=(12,4))
+  N=int(fs/0.1)*30
+  f_anayse=np.linspace(0,fs,N+1)
+  faxis=[]
+  X=[]
+  for i,fi in enumerate(f_anayse):
+    if 199<=fi<=202:
+      a=np.exp(-1j*2*np.pi*fi*t)
+      faxis.append(fi)
+      X.append(np.dot(s,a))
+
+
+  plt.subplot(121)
+  plt.plot(faxis,20*np.log10(np.abs(X)/len(s)),'k', alpha=0.2)
+  plt.grid(b='on')
+  plt.subplot(122)
+  plt.plot(faxis,20*np.log10(np.abs(X)/len(s)),'k')
+  plt.grid(b='on')
+
+  N=len(s)
+  faxis=np.linspace(190,210,201)
+  X=[]
+  for i,fi in enumerate(faxis):
+      a=np.exp(-1j*2*np.pi*fi*t)
+      X.append(np.dot(s,a))
+
+  plt.subplot(121)
+  plt.plot(faxis,20*np.log10(np.abs(X)/len(s)),'r.')
+  plt.axis([199,202,-300,0])
+  
+  plt.subplot(122)
+  plt.plot(faxis,20*np.log10(np.abs(X)/len(s)),'r.')
+  plt.axis([199,202,-50,0])
+  plt.savefig('spectral_est.org_imgs/spectral_DTFT_bigN_local.png')
+  'spectral_est.org_imgs/spectral_DTFT_bigN_local.png'
+  #+END_SRC
+
+  #+RESULTS:
+  [[file:spectral_est.org_imgs/spectral_DTFT_bigN_local.png]]
+
+  观察两个谱峰之间的零点数量可以发现，但信号长度增加10倍后，谱零点数量也增加了10倍。
+
+* zoom FFT
 
 
