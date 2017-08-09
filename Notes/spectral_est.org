@@ -108,7 +108,7 @@
   #+RESULTS:
   [[file:spectral_est.org_imgs/spectral_DTFT_localzoom.png]]
 
-  可以看到，增加频谱分析的点数之后，200、201Hz 就可以分开了，此时的分析频率为20/200=0.1Hz。但是谱的副瓣很高。
+  可以看到，增加频谱分析的点数之后，200、201Hz 就可以分开了[fn:1]，此时的分析频率为20/200=0.1Hz。但是谱的副瓣很高。
   将整个频谱都用DTFT 的方式给出：
 
   #+BEGIN_SRC python :session spectral :results file :exports results
@@ -257,7 +257,7 @@
   [[file:spectral_est.org_imgs/spectral_bigN.png]]
 
 
-  #+BEGIN_SRC python :session spectral :results file :exports both
+  #+BEGIN_SRC python :session spectral :results file :exports results
   plt.clf()
   plt.figure(figsize=(12,4))
   N=int(fs/0.1)*30
@@ -302,5 +302,45 @@
   观察两个谱峰之间的零点数量可以发现，但信号长度增加10倍后，谱零点数量也增加了10倍。
 
 * zoom FFT
+从[[https://stackoverflow.com/questions/22277476/fft-lots-of-detail-around-certain-frequency][一个例子]] 开始。
+
+zoom FFT的基本流程：
+1. 以复数下变频的方式进行变频
+2. 低通滤波
+3. 采样
+4. FFT
+
+zoom FFt 肯定能降低计算量，但是是否能提高分辨率？
+依然使用上面的例子进行分析。由于只有三个纯的单音信号，因此可以省略低通滤波这个步骤。
+
+下面这段分析用的是最开始的信号，信号时长1s。
+  #+BEGIN_SRC python :session spectral :results file
+  from scipy.signal import decimate
+  f_demod=200
+  ratio =25
+  lo = 2**.5 * np.exp(-2j*np.pi*f_demod * t) # local oscillator
+  y = decimate(s * lo, ratio) # demodulate and decimate to 100 Hz
+
+  plt.clf()
+  Nfft=len(y)*10
+  Y=np.fft.fft(y,Nfft)/len(y)
+  plt.plot(np.linspace(0,fs/ratio,Nfft)+f_demod,20*np.log10(np.abs(Y)))
+  plt.grid(b='on')
+  plt.savefig('spectral_est.org_imgs/spectral_zoom.png')
+  'spectral_est.org_imgs/spectral_zoom.png'
+  #+END_SRC
+
+  #+RESULTS:
+  [[file:spectral_est.org_imgs/spectral_zoom.png]]
+
+  可以看到，zoom 确实放大了局部的频谱，但是在同等时长下，分辨率并没有提高。另外，不需要LPF 的论点不可靠，信号中存在100Hz 的信号，使用低的采样率为什么没有造成混叠？
+
+  
+
+* Footnotes
+
+[fn:1] 实际上，此处揭示的是FFT(DFT)的栅栏效应：DTFT得出的是连续谱，而DFT只能得到离散谱，离散谱线之间的部分是未知的。
+
+
 
 
