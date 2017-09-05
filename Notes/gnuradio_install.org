@@ -1,3 +1,34 @@
 * Gnuradio
 ** Install
    [[http://blog.leanote.com/post/2997215859/GNU-Radio%E5%9C%A8linux%E4%B8%8B%E7%9A%84%E5%AE%89%E8%A3%85%EF%BC%88%E4%BA%8C%EF%BC%89][build-gnuradio]]
+
+** pybombs[fn:1][fn:2]
+
+1. first thing
+    pip pointing to python2, a pip2 pointing to python2, and a pip3 pointing to python3.
+    #+BEGIN_SRC sh
+    python3 -m pip install -U --force-reinstall pip
+    python -m pip install -U --force-reinstall pip
+    #+END_SRC
+2. Install PyBOMBS
+    #+BEGIN_SRC sh
+    [sudo] pip install [--upgrade] git+https://github.com/gnuradio/pybombs.git
+    #+END_SRC
+3. 
+    #+BEGIN_SRC sh
+    pybombs auto-config
+    pybombs recipes add-defaults
+    mkdir prefix/
+    pybombs prefix init -a default prefix/default/ -R gnuradio-default
+    #+END_SRC
+
+* Footnotes
+
+[fn:2] https://www.gnuradio.org/blog/pybombs-the-what-the-how-and-the-why/
+
+[fn:1] https://github.com/gnuradio/pybombs
+
+
+
+
+
