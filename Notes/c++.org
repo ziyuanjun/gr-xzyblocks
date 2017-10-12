@@ -37,7 +37,7 @@
    #+BEGIN_SRC sh
    gr_modtool newmod xxx
    #+END_SRC
-   运行该命令后，会生成一个名为 gr_xxx 的新路径。注意最好不要把在 GNU Radio 的源码路径下新建自己的组件。
+   其中 xxx 是用户设计的组件名称。运行该命令后，会生成一个名为 gr_xxx 的新路径。注意最好不要把在 GNU Radio 的源码路径下新建自己的组件。
    gr_xxx 路径下各目录的用途参考[[组件路径结构]]一节。
  
 2. 使用 add 命令新建模块。在组件的目录中运行：
@@ -45,9 +45,11 @@
    gr_modtool add test_ff
    #+END_SRC
    该命令会生成模块 test_ff 相关的空文件并对应地修改 CMakeLists.txt 文件。
-   test_ff 就是模块的名字，其中 _ff 是 GNU Radio 对模块使用的特殊命名后缀，此外还有多种其他的[[后缀名规范][后缀]]。
+   test_ff 就是模块的名字，其中 test 可由用户设计，应尽量选取表示模块功能的名字， _ff 是 GNU Radio 对模块使用的特殊命名后缀，此外还有多种其他的[[后缀名规范][后缀]]。
    add 命令可以指定模块类型、编写的语言等设置，详细调用方法参考[[add 命令]]一节。即使只像上面一样写了模块名称， gr_modtool 也会通过询问的方式帮助你完成其他必要的设置。
-3. 编写代码
+3. 编写测试
+   +假装是一个专业程序员+
+4. 编写代码
    根据新建模块时设置的编写语言，下面分别说明：
    1. C++
       gr_modtool 已经自动生成了几个文件：lib/test_ff_impl.h、lib/test_ff_impl.cc、include/xxx/test_ff.h、grc/xxx_test_ff.xml。如果在新建模块时设置了要生成测试代码，则还会生成 python/qa_test_ff.py 文件（以生成 Python 测试为例，也可以用 C++ 写测试），qa_ 是 GNU Radio 的特殊命名前缀，参考[[前缀名规范]]。
@@ -57,6 +59,19 @@
       gr_modtool 已经自动生成了几个文件：python/test_ff.py、grc/xxx_test_ff.xml、python/qa_test_ff.py。
 
       接下来的主要任务就是结合具体需求完成 python/*.py 的编写。
+5. CMake
+      在组件目录中运行：
+      #+BEGIN_SRC sh
+      mkdir build
+      cd build/
+      cmake ../
+      make
+      #+END_SRC
+
+   如果是用 PyBoMBS 安装 GNU Radio, 需要[[PyBOMBS OOT][特殊配置]]。
+6. 测试
+
+
 
 * 关键点
 ** 组件路径结构
@@ -101,11 +116,27 @@
      用于编译。
 ** add 命令
 ** 前缀名规范
+所有全局可见的命名（自定义类型、函数、变量、常量等）都带有前缀。
+| 前缀 | 用处                   |
+|------+------------------------|
+| gr_  |                        |
+| qa_  | 质量验证，用于测试代码 |
+|      |                        |
+
 ** 后缀名规范
+信号处理模块名称的后缀有特殊的约定。
+   1. 2字符后缀
+      通常由2个字符组成，由输入和输出的数据流类型来确定。
+      第一个字符表示输入数据流的类型，第二个字符表示输出数据流的类型。
+   2. 3字符后缀
+      FIR 滤波器，分别表示输入、输出数据流类型和抽头数；
+      处理向量流的模块会在2字符的基础上附加字母 v 作为后缀开头。
+智能指针类型以 _sptr 为后缀。
 * 实例
 
 * 常见问题
 
+** PyBOMBS OOT
 * 参考资料
   [[https://wiki.gnuradio.org/index.php/Guided_Tutorial_GNU_Radio_in_C%252B%252B][官网文档]], 
 
