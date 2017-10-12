@@ -1,0 +1,111 @@
+# -*- eval: (setq org-download-image-dir (file-name-sans-extension (buffer-name))); -*-
+# -*- org-export-babel-evaluate: nil; -*-
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="../orgstyle.css"/>
+#+OPTIONS: ':nil *:t -:t ::t <:t H:3 \n:t arch:headline author:t c:nil S:nil -:nil
+#+OPTIONS: creator:nil d:(not "En") date:t e:t email:nil f:t inline:t
+#+OPTIONS: num:t p:nil pri:nil prop:nil stat:t tags:t tasks:t tex:t timestamp:t
+#+OPTIONS: title:t toc:t todo:t |:t 
+#+OPTIONS: ^:{}
+#+LATEX_CLASS: ctexart
+#+STARTUP: entitiespretty:t
+#+TITLE: GNU Radio 的 C++ 模块编写
+#+SELECT_TAGS: export
+#+EXCLUDE_TAGS: noexport
+#+CREATOR: Emacs 26.0.50.2 (Org mode 9.0.4)
+
+* 概述
+  GNU Radio 自带了多种模块（block），使用自带的模块已经能够构建丰富的信号处理流程、完成许多常见的任务。
+  同时，作为一个完全开源的平台， GNU Radio 允许用户定义自己的模块，用户可以将多个自己的模块组织在一起，形成一个特定用途的组件，这种组件一般称为 OOT 模块（Out-of-tree modules）。
+  可以使用 Python 或 C++ 来编写模块，通常实时性要求高的都使用 C++ 编写。
+  本文对 GNU Radio 中 C++ 模块的编写方法及常见问题。
+
+* 基本概念
+- block
+  本文译为模块。
+- OOT
+  GNU Radio 源码中不存在的组件（component）都被称为 out-of-tree module。
+- module
+  本文译为组件（相同译文的还用 component）。
+- GRC
+  GNU Radio companion, GNU Radio 的图形化开发工具。
+- CGRAN
+- PyBOMBS
+
+* 快速开始
+使用 gr_modtool 是组件编辑的瑞士军刀，可以帮助完成构建组件的大量工作。
+1. 使用 newmod 命令生成组件。在准备存放新组件的路径中使用命令行输入：
+   #+BEGIN_SRC sh
+   gr_modtool newmod xxx
+   #+END_SRC
+   运行该命令后，会生成一个名为 gr_xxx 的新路径。注意最好不要把在 GNU Radio 的源码路径下新建自己的组件。
+   gr_xxx 路径下各目录的用途参考[[组件路径结构]]一节。
+ 
+2. 使用 add 命令新建模块。在组件的目录中运行：
+   #+BEGIN_SRC sh
+   gr_modtool add test_ff
+   #+END_SRC
+   该命令会生成模块 test_ff 相关的空文件并对应地修改 CMakeLists.txt 文件。
+   test_ff 就是模块的名字，其中 _ff 是 GNU Radio 对模块使用的特殊命名后缀，此外还有多种其他的[[后缀名规范][后缀]]。
+   add 命令可以指定模块类型、编写的语言等设置，详细调用方法参考[[add 命令]]一节。即使只像上面一样写了模块名称， gr_modtool 也会通过询问的方式帮助你完成其他必要的设置。
+3. 编写代码
+   根据新建模块时设置的编写语言，下面分别说明：
+   1. C++
+      gr_modtool 已经自动生成了几个文件：lib/test_ff_impl.h、lib/test_ff_impl.cc、include/xxx/test_ff.h、grc/xxx_test_ff.xml。如果在新建模块时设置了要生成测试代码，则还会生成 python/qa_test_ff.py 文件（以生成 Python 测试为例，也可以用 C++ 写测试），qa_ 是 GNU Radio 的特殊命名前缀，参考[[前缀名规范]]。
+
+      接下来的主要任务就是结合具体需求完成 lib/*_impl.h 和 lib/*_impl.cc 的编写。
+   2. Python
+      gr_modtool 已经自动生成了几个文件：python/test_ff.py、grc/xxx_test_ff.xml、python/qa_test_ff.py。
+
+      接下来的主要任务就是结合具体需求完成 python/*.py 的编写。
+
+* 关键点
+** 组件路径结构
+   gr_xxx 的目录结构如下(省略了部分文件)：
+
+   #+BEGIN_EXAMPLE
+    .
+    ├── apps
+    ├── cmake
+    ├── CMakeLists.txt
+    ├── docs
+    ├── examples
+    ├── grc
+    ├── include
+    │   └── xxx
+    │       ├── api.h
+    │       └── CMakeLists.txt
+    ├── lib
+    ├── MANIFEST.md
+    ├── python
+    └── swig
+        └── xxx_swig.i
+   #+END_EXAMPLE
+   其中，
+   - lib/
+     使用C++（或者C等其他非Python）的语言编写的文件存放在 lib/ 目录下；
+   - include/
+     C++ 文件使用的头文件存放在 include/ (准备导出) 目录或者 lib/ (只跟编译有关，不用于安装，比如 _impl.h 文件) 目录下；
+   - python/
+     python 相关的文件存放在 python/ 目录下。包含单元测试和不用于安装的 Python module (单元测试也是不安装的）。
+   - swig/
+     SWIG 是帮助使用 C/C++ 编写的软件能与其他各种高级编程工具进行嵌入连接的开发工具。GNU Radio 使用 SWIG 工具来自动产生嵌入 C++ 模块的 Python 接口，从而使得 Python 能够直接使用 C++ 编写的模块。在 SWIG 工作过程中要用到的信息都存放在 swig/ 目录下。gr_modtool 帮助我们完成了几乎所有的工作，一般情况下不需要修改这个路径下的内容。
+   - grc/
+     为了使编写的模块能够在 GRC 中使用，需要在该路径下编写必要的 XML 文件。
+   - docs/
+     文档。
+   - apps/
+     包含任意的、完整的、使用了组件中的模块的应用程序（可以使 GRC 文件或者可执行文件）。
+   - examples/
+     例子。
+   - cmake/
+     用于编译。
+** add 命令
+** 前缀名规范
+** 后缀名规范
+* 实例
+
+* 常见问题
+
+* 参考资料
+  [[https://wiki.gnuradio.org/index.php/Guided_Tutorial_GNU_Radio_in_C%252B%252B][官网文档]], 
+
