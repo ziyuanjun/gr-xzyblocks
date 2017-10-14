@@ -20,5 +20,6 @@ install(FILES
     xzyblocks_square_ff.xml
     xzyblocks_fft_scan_py_vcc.xml
     xzyblocks_fft_scan_sink_py_vcc.xml
-    xzyblocks_fft_scan_plot_py_vc.xml DESTINATION share/gnuradio/grc/blocks
+    xzyblocks_fft_scan_plot_py_vc.xml
+    xzyblocks_signal_detector_py_vcf.xml DESTINATION share/gnuradio/grc/blocks
 )

@@ -20,58 +20,62 @@
   本文对 GNU Radio 中 C++ 模块的编写方法及常见问题。
 
 * 基本概念
-- block
-  本文译为模块。
-- OOT
-  GNU Radio 源码中不存在的组件（component）都被称为 out-of-tree module。
-- module
-  本文译为组件（相同译文的还用 component）。
-- GRC
-  GNU Radio companion, GNU Radio 的图形化开发工具。
-- CGRAN
-- PyBOMBS
+  - block
+    本文译为模块。
+  - OOT
+    GNU Radio 源码中不存在的组件（component）都被称为 out-of-tree module。
+  - module
+    本文译为组件（相同译文的还用 component）。
+  - GRC
+    GNU Radio companion, GNU Radio 的图形化开发工具。
+  - CGRAN
+  - PyBOMBS
 
 * 快速开始
-使用 gr_modtool 是组件编辑的瑞士军刀，可以帮助完成构建组件的大量工作。
-1. 使用 newmod 命令生成组件。在准备存放新组件的路径中使用命令行输入：
-   #+BEGIN_SRC sh
-   gr_modtool newmod xxx
-   #+END_SRC
-   其中 xxx 是用户设计的组件名称。运行该命令后，会生成一个名为 gr_xxx 的新路径。注意最好不要把在 GNU Radio 的源码路径下新建自己的组件。
-   gr_xxx 路径下各目录的用途参考[[组件路径结构]]一节。
- 
-2. 使用 add 命令新建模块。在组件的目录中运行：
-   #+BEGIN_SRC sh
-   gr_modtool add test_ff
-   #+END_SRC
-   该命令会生成模块 test_ff 相关的空文件并对应地修改 CMakeLists.txt 文件。
-   test_ff 就是模块的名字，其中 test 可由用户设计，应尽量选取表示模块功能的名字， _ff 是 GNU Radio 对模块使用的特殊命名后缀，此外还有多种其他的[[后缀名规范][后缀]]。
-   add 命令可以指定模块类型、编写的语言等设置，详细调用方法参考[[add 命令]]一节。即使只像上面一样写了模块名称， gr_modtool 也会通过询问的方式帮助你完成其他必要的设置。
-3. 编写测试
-   +假装是一个专业程序员+
-4. 编写代码
-   根据新建模块时设置的编写语言，下面分别说明：
-   1. C++
-      gr_modtool 已经自动生成了几个文件：lib/test_ff_impl.h、lib/test_ff_impl.cc、include/xxx/test_ff.h、grc/xxx_test_ff.xml。如果在新建模块时设置了要生成测试代码，则还会生成 python/qa_test_ff.py 文件（以生成 Python 测试为例，也可以用 C++ 写测试），qa_ 是 GNU Radio 的特殊命名前缀，参考[[前缀名规范]]。
+  使用 gr_modtool 是组件编辑的瑞士军刀，可以帮助完成构建组件的大量工作。
+  1. 使用 newmod 命令生成组件。在准备存放新组件的路径中使用命令行输入：
+     #+BEGIN_SRC sh
+     gr_modtool newmod xxx
+     #+END_SRC
+     其中 xxx 是用户设计的组件名称。运行该命令后，会生成一个名为 gr_xxx 的新路径。注意最好不要把在 GNU Radio 的源码路径下新建自己的组件。
+     gr_xxx 路径下各目录的用途参考[[组件路径结构]]一节。
 
-      接下来的主要任务就是结合具体需求完成 lib/*_impl.h 和 lib/*_impl.cc 的编写。
-   2. Python
-      gr_modtool 已经自动生成了几个文件：python/test_ff.py、grc/xxx_test_ff.xml、python/qa_test_ff.py。
+  2. 使用 add 命令新建模块。在组件的目录中运行：
+     #+BEGIN_SRC sh
+     gr_modtool add test_ff
+     #+END_SRC
+     该命令会生成模块 test_ff 相关的空文件并对应地修改 CMakeLists.txt 文件。
+     test_ff 就是模块的名字，其中 test 可由用户设计，应尽量选取表示模块功能的名字， _ff 是 GNU Radio 对模块使用的特殊命名后缀，此外还有多种其他的[[后缀名规范][后缀]]。
+     add 命令可以指定模块类型、编写的语言等设置，详细调用方法参考[[add 命令]]一节。即使只像上面一样写了模块名称， gr_modtool 也会通过交互式询问的方式帮助你完成其他必要的设置。
+  3. 编写测试
+     +假装是一个专业程序员+
+  4. 编写代码
+     根据新建模块时设置的编写语言，下面分别说明：
+     1. C++
+        gr_modtool 已经自动生成了几个文件：lib/test_ff_impl.h、lib/test_ff_impl.cc、include/xxx/test_ff.h、grc/xxx_test_ff.xml。如果在新建模块时设置了要生成测试代码，则还会生成 python/qa_test_ff.py 文件（以生成 Python 测试为例，也可以用 C++ 写测试），qa_ 是 GNU Radio 的特殊命名前缀，参考[[前缀名规范]]。
 
-      接下来的主要任务就是结合具体需求完成 python/*.py 的编写。
-5. CMake
-      在组件目录中运行：
-      #+BEGIN_SRC sh
-      mkdir build
-      cd build/
-      cmake ../
-      make
-      #+END_SRC
+        接下来的主要任务就是结合具体需求完成 lib/*_impl.h 和 lib/*_impl.cc 的编写。
+     2. Python
+        gr_modtool 已经自动生成了几个文件：python/test_ff.py、grc/xxx_test_ff.xml、python/qa_test_ff.py。
 
-   如果是用 PyBoMBS 安装 GNU Radio, 需要[[PyBOMBS OOT][特殊配置]]。
-6. 测试
+        接下来的主要任务就是结合具体需求完成 python/*.py 的编写。
+  5. CMake
+     在组件目录中运行：
+     #+BEGIN_SRC sh
+     mkdir build
+     cd build/
+     cmake ../
+     make
+     #+END_SRC
 
+     如果是用 PyBoMBS 安装 GNU Radio, 需要[[PyBOMBS OOT][特殊配置]]，使用类似如下命令：
+     #+BEGIN_SRC sh
+     cmake -DCMAKE_INSTALL_PREFIX=../
+     #+END_SRC
 
+  6. 调试测试
+
+  7. 发布
 
 * 关键点
 ** 组件路径结构
@@ -115,28 +119,78 @@
    - cmake/
      用于编译。
 ** add 命令
+   | 参数 | 对应设置项 |
+   |------+------------|
+   | -t   | 模块类型   |
+   |      |            |
+*** 模块类型
+    GNU Radio中存在不同类型的block：general, sync, interpolator/decimator, source/sink, Hierarchical等等。
+
+    同步模块 Synchronous Blocks (1:1)
+    抽取模块 Decimation Blocks (N:1)
+    插值模块 Interpolation Blocks (1:M)
+    广义模块 General Blocks (N:M)
+
+
 ** 前缀名规范
-所有全局可见的命名（自定义类型、函数、变量、常量等）都带有前缀。
-| 前缀 | 用处                   |
-|------+------------------------|
-| gr_  |                        |
-| qa_  | 质量验证，用于测试代码 |
-|      |                        |
+   所有全局可见的命名（自定义类型、函数、变量、常量等）都带有前缀。
+   | 前缀 | 用处                   |
+   |------+------------------------|
+   | gr_  |                        |
+   | qa_  | 质量验证，用于测试代码 |
+   |      |                        |
 
 ** 后缀名规范
-信号处理模块名称的后缀有特殊的约定。
+   信号处理模块名称的后缀有特殊的约定。
    1. 2字符后缀
       通常由2个字符组成，由输入和输出的数据流类型来确定。
       第一个字符表示输入数据流的类型，第二个字符表示输出数据流的类型。
+      一些后缀和其含义：
+      | 字符 | 数据类型              |
+      |------+-----------------------|
+      | f    | 单精度浮点            |
+      | c    | 复数<浮点>            |
+      | s    | 短型整型（16 位整数） |
+      | i    | 整型（32 位整数）     |
    2. 3字符后缀
       FIR 滤波器，分别表示输入、输出数据流类型和抽头数；
-      处理向量流的模块会在2字符的基础上附加字母 v 作为后缀开头。
-智能指针类型以 _sptr 为后缀。
+      处理向量流的模块会在2字符的基础上附加字母 v 作为后缀的*第一个字符*。
+
+   智能指针类型以 _sptr 为后缀。
 * 实例
+  通过编写一个实际的模块来具体说明模块的编写方法。
+** 模块顶层设计
+   - 功能： 信号检测。从频谱中计算出存在信号的频率和带宽。
+   - I/O: 输入一定采样率的IQ数据；输出检出信号的(信号频率, 信号带宽)序列。
+   - 语言： python。
+   - 模块名：signal_detector_py_vcf (其中 py 是为了区别于 C++ 编写的模块，？也许是不必要的）
+
+** 创建步骤
+*** add
+    使用 add 命令新建模块。
+    #+BEGIN_SRC sh
+    gr-xzyblocks ✗ gr_modtool add signal_detector_py_vcf
+    #+END_SRC
+    #+BEGIN_QUOTE
+    GNU Radio module name identified: xzyblocks
+    ('sink', 'source', 'sync', 'decimator', 'interpolator', 'general', 'tagged_stream', 'hier', 'noblock')
+    Enter block type: general
+    Language (python/cpp): python
+    Language: Python
+    Block/code identifier: signal_detector_py_vcf
+    Enter valid argument list, including default arguments: 
+    Add Python QA code? [Y/n] 
+    Adding file 'python/signal_detector_py_vcf.py'...
+    Adding file 'python/qa_signal_detector_py_vcf.py'...
+    Editing python/CMakeLists.txt...
+    Adding file 'grc/xzyblocks_signal_detector_py_vcf.xml'...
+    Editing grc/CMakeLists.txt...
+    #+END_QUOTE
+    上述命令新建了一个名为 signal_detector_py_vcf 的模块，[[模块类型][模块的类型]]为 general, 使用 python 编写，自动生成 python 的测试代码。
+    进入 python/ 目录可以发现，正如交互式信息所提示的，目录下增加了两个文件。
 
 * 常见问题
 
 ** PyBOMBS OOT
 * 参考资料
   [[https://wiki.gnuradio.org/index.php/Guided_Tutorial_GNU_Radio_in_C%252B%252B][官网文档]], 
-

@@ -34,7 +34,8 @@ GR_PYTHON_INSTALL(
     square_ff.py
     fft_scan_py_vcc.py
     fft_scan_sink_py_vcc.py
-    fft_scan_plot_py_vc.py DESTINATION ${GR_PYTHON_DIR}/xzyblocks
+    fft_scan_plot_py_vc.py
+    signal_detector_py_vcf.py DESTINATION ${GR_PYTHON_DIR}/xzyblocks
 )
 
 ########################################################################
@@ -44,3 +45,4 @@ include(GrTest)
 
 set(GR_TEST_TARGET_DEPS gnuradio-xzyblocks)
 set(GR_TEST_PYTHON_DIRS ${CMAKE_BINARY_DIR}/swig)
+GR_ADD_TEST(qa_signal_detector_py_vcf ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_signal_detector_py_vcf.py)
