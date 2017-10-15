@@ -4,7 +4,7 @@
 #+OPTIONS: ':nil *:t -:t ::t <:t H:3 \n:t arch:headline author:t c:nil S:nil -:nil
 #+OPTIONS: creator:nil d:(not "En") date:t e:t email:nil f:t inline:t
 #+OPTIONS: num:t p:nil pri:nil prop:nil stat:t tags:t tasks:t tex:t timestamp:t
-#+OPTIONS: title:t toc:t todo:t |:t 
+#+OPTIONS: title:t toc:t todo:t |:t
 #+OPTIONS: ^:{}
 #+LATEX_CLASS: ctexart
 #+STARTUP: entitiespretty:t
@@ -30,6 +30,9 @@
     GNU Radio companion, GNU Radio 的图形化开发工具。
   - CGRAN
   - PyBOMBS
+  - port
+  - sink
+  - source
 
 * 快速开始
   使用 gr_modtool 是组件编辑的瑞士军刀，可以帮助完成构建组件的大量工作。
@@ -122,6 +125,7 @@
    | 参数 | 对应设置项 |
    |------+------------|
    | -t   | 模块类型   |
+   | -l   | 语言       |
    |      |            |
 *** 模块类型
     GNU Radio中存在不同类型的block：general, sync, interpolator/decimator, source/sink, Hierarchical等等。
@@ -131,7 +135,30 @@
     插值模块 Interpolation Blocks (1:M)
     广义模块 General Blocks (N:M)
 
+    它们继承自不同的模块：
+    general block (gr.basic_block)
+    synchronous block (gr.sync_block)
+    decimator (gr.sync_decimator)
+    interpolator (gr.sync_interpolator)
 
+**** Synchronous Block[fn:2]
+每个端口消耗或产生相同数量的项。
+其输入和输出的数目可以是任意的，但同步模块的输入量为零时，该模块为“源”―信源，当同步模块的输出量为零时，该模块为“陷”－信宿。
+**** Decimation Block
+The decimation block is another type of fixed rate block where the number of input items is a fixed multiple of the number of output items.
+**** Interpolation Block
+The interpolation block is another type of fixed rate block where the number of output items is a fixed multiple of the number of input items.
+**** Basic Block
+     The basic block provides no relation between the number of input items and the number of output items. All other blocks are just simplifications of the basic block. Users should choose to inherit from basic block when the other blocks are not suitable.
+
+     Some observations:
+
+     This class overloads the general_work() method, not work()
+     The general work has a parameter: ninput_items
+     ninput_items is a vector describing the length of each input buffer
+     Before return, general_work must manually consume the used inputs
+     The number of items in the input buffers is assumed to be noutput_items
+     Users may alter this behaviour by overloading the forecast() method
 ** 前缀名规范
    所有全局可见的命名（自定义类型、函数、变量、常量等）都带有前缀。
    | 前缀 | 用处                   |
@@ -160,10 +187,15 @@
 * 实例
   通过编写一个实际的模块来具体说明模块的编写方法。
 ** 模块顶层设计
-   - 功能： 信号检测。从频谱中计算出存在信号的频率和带宽。
-   - I/O: 输入一定采样率的IQ数据；输出检出信号的(信号频率, 信号带宽)序列。
-   - 语言： python。
-   - 模块名：signal_detector_py_vcf (其中 py 是为了区别于 C++ 编写的模块，？也许是不必要的）
+   - 功能：
+     信号检测。从频谱中计算出存在信号的频率和带宽。
+   - I/O:
+     输入一定采样率的IQ数据；
+     输出检出信号的(信号频率, 信号带宽)序列。
+   - 语言：
+     python。
+   - 模块名：
+     signal_detector_py_vcf (其中 py 是为了区别于 C++ 编写的模块，？也许是不必要的）
 
 ** 创建步骤
 *** add
@@ -178,8 +210,8 @@
     Language (python/cpp): python
     Language: Python
     Block/code identifier: signal_detector_py_vcf
-    Enter valid argument list, including default arguments: 
-    Add Python QA code? [Y/n] 
+    Enter valid argument list, including default arguments:
+    Add Python QA code? [Y/n]
     Adding file 'python/signal_detector_py_vcf.py'...
     Adding file 'python/qa_signal_detector_py_vcf.py'...
     Editing python/CMakeLists.txt...
@@ -189,8 +221,136 @@
     上述命令新建了一个名为 signal_detector_py_vcf 的模块，[[模块类型][模块的类型]]为 general, 使用 python 编写，自动生成 python 的测试代码。
     进入 python/ 目录可以发现，正如交互式信息所提示的，目录下增加了两个文件。
 
-* 常见问题
+    接下来编写 signal_detector_py_vcf.py 完成相应的信号处理功能，编写 qa_signal_detector_py_vcf.py 实现测试。
+    +为了假装是一个专业的程序员，+我的建议当然是先编写测试程序。
+*** 编写测试代码
+    编写测试代码能帮助你在一头扎入功能代码之前进一步明晰目标。而且作为一个经过多年积累的成熟的程序员，理应从测试代码开始。
+    =qa_signal_detector_py_vcf.py=
+    #+BEGIN_SRC python
+    from gnuradio import gr, gr_unittest
+    from gnuradio import blocks
+    from signal_detector_py_vcf import signal_detector_py_vcf
 
+    class qa_signal_detector_py_vcf (gr_unittest.TestCase):
+
+        def setUp (self):
+            self.tb = gr.top_block ()
+
+        def tearDown (self):
+            self.tb = None
+
+        def test_001_t (self):
+            # set up fg
+            self.tb.run ()
+            # check data
+
+    if __name__ == '__main__':
+        gr_unittest.run(qa_signal_detector_py_vcf, "qa_signal_detector_py_vcf.xml")
+    #+END_SRC
+    gr_unittest 是标准的 python 模块 unittest 的延伸。
+    gr_unittest 添加支持查看浮点和复合数据类型的元值（tuples）是否大致相同的功能。
+    Unittest 使用 Python 的反射机制来发现所有以 test_ 开头的表达式并运行它们。
+    Unittest 使用泛包裹每个调用来匹配 test_* 从而（决定）调用 setUp 和 tearDown 来完成任务的。
+    详细的 Python 的 unittest 相关文档到 unittest 查看。
+
+    每当运行 test 时，gr_unittest.main 便（调用）触发 setUp、test_001_t、和 tearDown 。
+
+    通常 test_* 的编写方法是构建一个包含待测试模块的小流图，通过self.tb.run() 运行流图，然后收集运行结果，检查是否于预期的相同。
+    流图一般包含三个节点，gr.vector_source_xxx(src_data) 用 src_data 的元素来构建“源”数据流；your block 是用来测试的模块；gr.vector_sink_xxx 用来收集用户模块的输出数据流。
+
+    #+BEGIN_SRC ditaa :file images/test.png
+    +---------------------------+              +---------------------------+               +---------------------------+
+    |                           |              | cRED                      |               |                           |
+    |                           |              |                           |               |                           |
+    |  gr.vector_source_xxx     +-------------->  your block               +--------------->    gr.vector_sink_xxx     |
+    |                           |              |                           |               |                           |
+    |                           |              |                           |               |                           |
+    +---------------------------+              +---------------------------+               +---------------------------+
+    #+END_SRC
+
+    #+RESULTS:
+    [[file:images/test.png]]
+
+    run （函数）表达式的功用是在流程图的引导下运行所有的所表达的模块。最后所关心的是，查看 square_ff 作用于 src_data 的结果同期望值是否相同。
+
+
+*** 编写功能代码
+    =signal_detector_py_vcf.py=:
+    #+BEGIN_SRC python
+    import numpy
+    from gnuradio import gr
+
+    class signal_detector_py_vcf(gr.basic_block):
+        """
+        docstring for block signal_detector_py_vcf
+        """
+        def __init__(self):
+            gr.basic_block.__init__(self,
+                                    name="signal_detector_py_vcf",
+                                    in_sig=[<+numpy.float+>],
+                                    out_sig=[<+numpy.float+>])
+
+        def forecast(self, noutput_items, ninput_items_required):
+            #setup size of input_items[i] for work call
+            for i in range(len(ninput_items_required)):
+                ninput_items_required[i] = noutput_items
+
+        def general_work(self, input_items, output_items):
+            output_items[0][:] = input_items[0]
+            consume(0, len(input_items[0]))
+            #self.consume_each(len(input_items[0]))
+            return len(output_items[0])
+    #+END_SRC
+    [[https://gnuradio.org/doc/doxygen/page_python_blocks.html][doxygen python block]]
+    [[https://wiki.gnuradio.org/index.php/Guided_Tutorial_GNU_Radio_in_Python#323-Modifying-the-Python-Block-File][Modifying the python block file]]
+
+**** init
+***** in_sig & out_sig
+    其中 <..> 是 gr_modtool 给出的占位符，是我们需要相关的部分。
+
+    numpy 常见的数据类型
+
+    numpy.int8
+    numpy.int16
+    numpy.int32
+    numpy.float32
+    numpy.float64
+    numpy.complex64
+
+    numpy 和 C++ 的类型对应[fn:1]：
+    | in c++     | in numpy        |
+    |------------+-----------------|
+    | float      | numpy.float32   |
+    | gr_complex | numpy.complex64 |
+    | int        | numpy.int32     |
+    |            |                 |
+
+    - 矢量
+      in_sig=[(numpy.complex64,Nfft)],
+    - 数值
+      in_sig=[numpy.float32],
+    - None (sink, for example)
+      out_sig=None
+
+**** (general_)work
+      work 函数是真正编写信号处理功能的地方。
+***** input_items & output_items
+      如果只有一个输入端口，=in0=input_items[0]= 就得到了这个输入；
+      如果有两个输入端口，=in1=input_items[1]= 得到第二个输入端口的输入，依次类推。
+      输出的端口的对应情况类似。
+
+      GNU Radio 使用了特殊的调度方式，当 init 函数中定义模块的输入长度为 N 时，work 函数每次运行时得到的可能是 k (k>=0) 组长度为 N 的序列。
+      因此 in0/out0 的 shape 可能是 (N,k)。处理时继续使用切片操作取出长度为 N 的矢量，即 =in0[0]=。
+
+* 常见问题
+** GNU Radio 的调度
 ** PyBOMBS OOT
 * 参考资料
-  [[https://wiki.gnuradio.org/index.php/Guided_Tutorial_GNU_Radio_in_C%252B%252B][官网文档]], 
+  [[https://wiki.gnuradio.org/index.php/Guided_Tutorial_GNU_Radio_in_C%252B%252B][官网文档]],
+
+* Footnotes
+
+[fn:2] https://wiki.gnuradio.org/index.php/BlocksCodingGuide
+
+[fn:1] https://www.ruby-forum.com/topic/4447182
+

@@ -21,16 +21,18 @@
 
 import numpy
 from gnuradio import gr
+import numpy as np
+from numpy.fft import fft, fftshift
 
 class signal_detector_py_vcf(gr.basic_block):
     """
     docstring for block signal_detector_py_vcf
     """
-    def __init__(self):
+    def __init__(self, sampRate=2.5e6, Nfft= 1024):
         gr.basic_block.__init__(self,
             name="signal_detector_py_vcf",
-            in_sig=[<+numpy.float+>],
-            out_sig=[<+numpy.float+>])
+            in_sig=[(numpy.complex64, Nfft)],
+            out_sig=(numpy.float32, Nfft))
 
     def forecast(self, noutput_items, ninput_items_required):
         #setup size of input_items[i] for work call
